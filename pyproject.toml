@@ -1,0 +1,61 @@
+[project]
+name = "robotsix-github-auth"
+version = "0.1.0"
+description = "Fleet-wide GitHub App authorization library: JWT signing + installation-token minting/caching + scope validation."
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+dependencies = [
+    "httpx>=0.28",
+    "pyjwt[crypto]>=2.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-httpx>=0.35",
+    "ruff>=0.9",
+    "mypy>=1.14",
+    "deptry>=0.23",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/robotsix_github_auth"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["robotsix_github_auth"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.deptry]
+known_first_party = ["robotsix_github_auth"]
+optional_dependencies_dev_groups = ["dev"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
