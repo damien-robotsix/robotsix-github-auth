@@ -542,13 +542,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "deptry", marker = "extra == 'dev'", specifier = ">=0.12,<1" },
-    { name = "httpx", specifier = ">=0.27,<1" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1,<2" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.8,<3" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8,<9" },
-    { name = "pytest-httpx", marker = "extra == 'dev'", specifier = ">=0.30,<1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5,<1" },
+    { name = "deptry", marker = "extra == 'dev'", specifier = ">=0.23" },
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.14" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
+    { name = "pytest-httpx", marker = "extra == 'dev'", specifier = ">=0.35" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9" },
 ]
 provides-extras = ["dev"]
 
