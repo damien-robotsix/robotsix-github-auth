@@ -18,7 +18,7 @@ class InstallationToken:
 
     token: str
     expires_at: datetime
-    permissions: dict[str, str] = field(default_factory=dict[str, str])
+    permissions: dict[str, str] = field(default_factory=dict)
 
     @property
     def seconds_remaining(self) -> float:

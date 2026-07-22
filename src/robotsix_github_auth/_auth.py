@@ -140,18 +140,6 @@ def mint_installation_token(
     if installation_id is None and not (owner and repo):
         raise TokenMintError("Either installation_id or both owner and repo must be provided.")
 
-    # Resolve/canonicalise the installation id
-    if installation_id is None:
-        assert owner is not None and repo is not None
-
-    resolved_id: str
-    if installation_id is not None:
-        resolved_id = installation_id
-    else:
-        # Check cache using owner/repo as a temporary key? No — we need
-        # the real installation_id first.
-        pass
-
     # Try the cache when we know the installation_id
     if installation_id is not None:
         cached = _token_cache.get(installation_id, scopes)
@@ -161,11 +149,11 @@ def mint_installation_token(
     jwt_token = _build_app_jwt(app_id, private_key)
 
     with httpx.Client() as client:
-        if installation_id is None:
+        if installation_id is not None:
+            resolved_id = installation_id
+        else:
             assert owner is not None and repo is not None
             resolved_id = _resolve_installation_id(client, jwt_token, owner, repo)
-        else:
-            resolved_id = installation_id
 
         token = _mint_token(client, jwt_token, resolved_id, scopes)
 
