@@ -53,10 +53,7 @@ class TestResolveInstallationId:
             json={"id": 42, "account": {"login": "octocat"}},
             status_code=200,
         )
-        import httpx
-
-        with httpx.Client() as client:
-            iid = _resolve_installation_id(client, jwt_token, "octocat", "hello-world")
+        iid = _resolve_installation_id(jwt_token, "octocat", "hello-world")
         assert iid == "42"
 
     def test_raises_on_404(self, app_id: str, private_key: str, httpx_mock: HTTPXMock) -> None:
@@ -65,10 +62,8 @@ class TestResolveInstallationId:
             url="https://api.github.com/repos/octocat/hello-world/installation",
             status_code=404,
         )
-        import httpx
-
-        with httpx.Client() as client, pytest.raises(TokenMintError, match="HTTP 404"):
-            _resolve_installation_id(client, jwt_token, "octocat", "hello-world")
+        with pytest.raises(TokenMintError, match="HTTP 404"):
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
 
 
 class TestMintInstallationToken:

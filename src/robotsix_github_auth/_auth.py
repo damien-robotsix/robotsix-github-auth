@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 import jwt
+from robotsix_http import RetryConfig, call_with_retry
 
 from robotsix_github_auth._cache import _token_cache
 from robotsix_github_auth._exceptions import TokenMintError
@@ -17,6 +18,7 @@ from robotsix_github_auth._models import InstallationToken
 _GITHUB_API_BASE: str = "https://api.github.com"
 _JWT_EXPIRY_SECONDS: int = 600
 _JWT_CLOCK_SKEW: int = 60
+_RETRY_CONFIG: RetryConfig = RetryConfig(max_retries=2)
 
 
 def _build_app_jwt(app_id: str, private_key: str) -> str:
@@ -34,7 +36,6 @@ def _build_app_jwt(app_id: str, private_key: str) -> str:
 
 
 def _resolve_installation_id(
-    client: httpx.Client,
     jwt_token: str,
     owner: str,
     repo: str,
@@ -46,7 +47,10 @@ def _resolve_installation_id(
         "Accept": "application/vnd.github+json",
     }
     try:
-        resp = client.get(url, headers=headers)
+        resp = call_with_retry(
+            lambda: httpx.get(url, headers=headers),
+            config=_RETRY_CONFIG,
+        )
         resp.raise_for_status()
     except httpx.HTTPStatusError as exc:
         raise TokenMintError(
@@ -63,7 +67,6 @@ def _resolve_installation_id(
 
 
 def _mint_token(
-    client: httpx.Client,
     jwt_token: str,
     installation_id: str,
     scopes: Mapping[str, str] | None = None,
@@ -82,7 +85,10 @@ def _mint_token(
         "Accept": "application/vnd.github+json",
     }
     try:
-        resp = client.post(url, headers=headers, json=body)
+        resp = call_with_retry(
+            lambda: httpx.post(url, headers=headers, json=body),
+            config=_RETRY_CONFIG,
+        )
         resp.raise_for_status()
     except httpx.HTTPStatusError as exc:
         raise TokenMintError(
@@ -148,14 +154,13 @@ def mint_installation_token(
 
     jwt_token = _build_app_jwt(app_id, private_key)
 
-    with httpx.Client() as client:
-        if installation_id is not None:
-            resolved_id = installation_id
-        else:
-            assert owner is not None and repo is not None
-            resolved_id = _resolve_installation_id(client, jwt_token, owner, repo)
+    if installation_id is not None:
+        resolved_id = installation_id
+    else:
+        assert owner is not None and repo is not None
+        resolved_id = _resolve_installation_id(jwt_token, owner, repo)
 
-        token = _mint_token(client, jwt_token, resolved_id, scopes)
+    token = _mint_token(jwt_token, resolved_id, scopes)
 
     _token_cache.put(resolved_id, scopes, token)
     return token
