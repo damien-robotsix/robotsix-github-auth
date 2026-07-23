@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Enable the `health` periodic workflow (`.robotsix-mill/periodic/health.yaml`), which inspects the repository across eight dimensions and proposes draft tickets for newly-discovered gaps.
 - Adopt `robotsix-http` for retry/backoff on GitHub API calls. Replaced bare
   `httpx.Client()` with `robotsix_http.call_with_retry` using `RetryConfig(max_retries=2)`.
   Bumped `requires-python` to `>=3.12` to match the `robotsix-http` dependency.
