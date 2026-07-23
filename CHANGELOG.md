@@ -1,5 +1,8 @@
 ## 0.0.0 (unreleased)
 
+- Adopt `robotsix-http` for retry/backoff on GitHub API calls. Replaced bare
+  `httpx.Client()` with `robotsix_http.call_with_retry` using `RetryConfig(max_retries=2)`.
+  Bumped `requires-python` to `>=3.12` to match the `robotsix-http` dependency.
 - Initial release: fleet-wide GitHub App installation-token minting library.
   - `mint_installation_token()` — build App JWT (RS256), resolve installation ID from owner/repo, mint tokens via GitHub REST API, with optional permission narrowing.
   - `InstallationToken` dataclass with `token`, `expires_at`, `permissions`, `seconds_remaining`, and `is_expired`.
