@@ -118,7 +118,6 @@ def mint_installation_token(
     owner: str | None = None,
     repo: str | None = None,
     scopes: Mapping[str, str] | None = None,
-    ttl_seconds: int = 3600,
 ) -> InstallationToken:
     """Mint a GitHub App installation access token.
 
@@ -134,8 +133,6 @@ def mint_installation_token(
             not given.
         scopes: Optional permission narrowing.  Keys are permission
             names; values are ``"read"``, ``"write"``, or ``"admin"``.
-        ttl_seconds: Requested token lifetime in seconds (not
-            guaranteed — GitHub caps tokens at 1 hour).
 
     Returns:
         A freshly minted (or cached) ``InstallationToken``.

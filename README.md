@@ -98,7 +98,6 @@ def mint_installation_token(
     owner: str | None = None,
     repo: str | None = None,
     scopes: Mapping[str, str] | None = None,
-    ttl_seconds: int = 3600,
 ) -> InstallationToken
 ```
 
@@ -110,7 +109,6 @@ def mint_installation_token(
 | `owner` | Repository owner (org or user). Required when `installation_id` is `None`. |
 | `repo` | Repository name. Required when `installation_id` is `None`. |
 | `scopes` | Optional `{permission: level}` map to narrow the token. |
-| `ttl_seconds` | Requested token lifetime (GitHub caps at 1 hour). |
 
 Returns `InstallationToken`.  Raises `TokenMintError` on failure.
 
