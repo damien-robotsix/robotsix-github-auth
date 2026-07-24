@@ -49,4 +49,4 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --extra dev
-      - run: uv run pytest tests/ -v
+      - run: uv run pytest tests/ -v --cov --cov-report=term --cov-fail-under=80

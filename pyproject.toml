@@ -18,6 +18,7 @@ dev = [
     "ruff>=0.9",
     "mypy>=1.14",
     "deptry>=0.23",
+    "pytest-cov>=6",
 ]
 
 [build-system]
@@ -67,3 +68,10 @@ disallow_untyped_defs = false
 [[tool.mypy.overrides]]
 module = ["robotsix_http", "robotsix_http.*"]
 ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["src/robotsix_github_auth"]
+
+[tool.coverage.report]
+fail_under = 80
