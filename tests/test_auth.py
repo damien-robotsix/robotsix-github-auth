@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -63,6 +64,29 @@ class TestResolveInstallationId:
             status_code=404,
         )
         with pytest.raises(TokenMintError, match="HTTP 404"):
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
+
+    def test_raises_on_network_error(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_exception(
+            httpx.RequestError("Connection refused"),
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+        )
+        with pytest.raises(TokenMintError, match="Connection refused"):
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
+
+    def test_raises_when_installation_id_missing_in_response(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            json={"account": {"login": "octocat"}},
+            status_code=200,
+        )
+        with pytest.raises(TokenMintError, match="No installation found"):
             _resolve_installation_id(jwt_token, "octocat", "hello-world")
 
 
@@ -213,6 +237,27 @@ class TestMintInstallationToken:
             status_code=500,
         )
         with pytest.raises(TokenMintError, match="HTTP 500"):
+            mint_installation_token(app_id, private_key, installation_id="42")
+
+    def test_raises_on_network_error_during_mint(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_exception(
+            httpx.RequestError("Connection reset"),
+            url="https://api.github.com/app/installations/42/access_tokens",
+        )
+        with pytest.raises(TokenMintError, match="Connection reset"):
+            mint_installation_token(app_id, private_key, installation_id="42")
+
+    def test_raises_on_malformed_mint_response(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={"token": "ghs_notime"},
+            status_code=201,
+        )
+        with pytest.raises(TokenMintError, match="missing 'expires_at'"):
             mint_installation_token(app_id, private_key, installation_id="42")
 
     def test_passes_scopes_in_request(
