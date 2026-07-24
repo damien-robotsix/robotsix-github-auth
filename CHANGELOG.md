@@ -1,5 +1,7 @@
 ## 0.0.0 (unreleased)
 
+- Enable periodic test-gap analysis agent to detect coverage regressions and
+  propose draft tickets for under-tested modules.
 - Enable the `health` periodic workflow (`.robotsix-mill/periodic/health.yaml`), which inspects the repository across eight dimensions and proposes draft tickets for newly-discovered gaps.
 - Enable `changelog_autofill` periodic workflow to automate changelog entry creation and bundling.
 - Adopt `robotsix-http` for retry/backoff on GitHub API calls. Replaced bare
