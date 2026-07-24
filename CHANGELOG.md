@@ -2,6 +2,7 @@
 
 - Remove unused `ttl_seconds` parameter from `mint_installation_token`. The parameter
   was never forwarded to the GitHub API; callers who passed it were silently ignored.
+- Removed unused `repositories` parameter from private `_mint_token` function (no callers ever passed it).
 - Enable periodic `audit` workflow for comprehensive codebase health reviews.
 - Enable periodic test-gap analysis agent to detect coverage regressions and
   propose draft tickets for under-tested modules.
