@@ -2,6 +2,7 @@
 
 - Enable `bc_check` periodic workflow for backward-compatibility hygiene scanning.
 - Enable `completeness_check` periodic workflow to scan for incomplete feature wiring.
+- Register `docstring_coverage` periodic workflow config (`.robotsix-mill/periodic/docstring_coverage.yaml`).
 - Upgrade pytest from 8.4.2 to 9.1.1 to fix CVE-2025-71176 (PYSEC-2026-1845, GHSA-6w46-j5rx-g56g), a predictable `/tmp` directory vulnerability.
 - Add code coverage measurement and enforcement: `pytest-cov` dev dependency, `[tool.coverage]` config with branch coverage at 80% threshold, and `--cov --cov-fail-under=80` in CI test step.
 - `_mint_token` now raises `TokenMintError` (instead of a bare `KeyError`) when the GitHub API response is missing the `expires_at` field, improving error diagnostics.
