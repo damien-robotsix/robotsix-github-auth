@@ -70,15 +70,12 @@ def _mint_token(
     jwt_token: str,
     installation_id: str,
     scopes: Mapping[str, str] | None = None,
-    repositories: list[str] | None = None,
 ) -> InstallationToken:
     """POST to the GitHub API to mint an installation access token."""
     url = f"{_GITHUB_API_BASE}/app/installations/{installation_id}/access_tokens"
     body: dict[str, Any] = {}
     if scopes is not None:
         body["permissions"] = dict(scopes)
-    if repositories is not None:
-        body["repositories"] = repositories
 
     headers = {
         "Authorization": f"Bearer {jwt_token}",
