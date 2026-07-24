@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Enable periodic `audit` workflow for comprehensive codebase health reviews.
 - Enable periodic test-gap analysis agent to detect coverage regressions and
   propose draft tickets for under-tested modules.
 - Enable the `health` periodic workflow (`.robotsix-mill/periodic/health.yaml`), which inspects the repository across eight dimensions and proposes draft tickets for newly-discovered gaps.
