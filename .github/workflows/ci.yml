@@ -24,8 +24,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: "3.13"
-      - run: uv sync --extra dev
+      - run: uv sync --frozen --extra dev
       - run: uv run ruff check src/ tests/
       - run: uv run ruff format --check src/ tests/
 
@@ -35,8 +36,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: "3.13"
-      - run: uv sync --extra dev
+      - run: uv sync --frozen --extra dev
       - run: uv run mypy src/
 
   deptry:
@@ -45,8 +47,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: "3.13"
-      - run: uv sync --extra dev
+      - run: uv sync --frozen --extra dev
       - run: uv run deptry .
 
   audit:
@@ -81,6 +84,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: ${{ matrix.python-version }}
-      - run: uv sync --extra dev
+      - run: uv sync --frozen --extra dev
       - run: uv run pytest tests/ -v --cov --cov-report=term --cov-fail-under=80
