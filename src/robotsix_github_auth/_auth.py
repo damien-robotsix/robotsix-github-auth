@@ -101,7 +101,12 @@ def _mint_token(
         ) from exc
 
     data: dict[str, Any] = resp.json()
-    expires_at_str: str = data["expires_at"]
+    try:
+        expires_at_str: str = data["expires_at"]
+    except KeyError as exc:
+        raise TokenMintError(
+            f"Malformed token response for installation {installation_id}: missing 'expires_at'"
+        ) from exc
     expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=UTC)
     return InstallationToken(
         token=data["token"],
