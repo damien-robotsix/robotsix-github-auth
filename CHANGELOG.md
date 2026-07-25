@@ -5,6 +5,7 @@
   module validation job to CI. Bump `requires-python` to `>=3.14` (required by
   robotsix-modules) and update CI matrix accordingly.
 - Enable `copy_paste` periodic workflow (jscpd duplicate detection).
+- Expose `invalidate_token_cache()` and `clear_token_cache()` as public API in `robotsix_github_auth` so callers can manage the token cache without importing private internals.
 - Enable the `survey` periodic workflow in `.robotsix-mill/periodic/survey.yaml`.
 - Enable `bc_check` periodic workflow for backward-compatibility hygiene scanning.
 - Enable `repo_description_sync` periodic workflow to keep the GitHub repo description aligned with README.

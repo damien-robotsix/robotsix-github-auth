@@ -61,10 +61,10 @@ remain before expiry — the next call will transparently re-mint.
 Callers that need to force a fresh token can clear the cache:
 
 ```python
-from robotsix_github_auth._cache import _token_cache
+from robotsix_github_auth import invalidate_token_cache, clear_token_cache
 
-_token_cache.invalidate("987654")   # clear one installation
-_token_cache.clear()                # clear everything
+invalidate_token_cache("987654")   # clear one installation
+clear_token_cache()                # clear everything
 ```
 
 ### Scope validation
