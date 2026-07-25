@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Enable `copy_paste` periodic workflow (jscpd duplicate detection).
 - Enable the `survey` periodic workflow in `.robotsix-mill/periodic/survey.yaml`.
 - Enable `bc_check` periodic workflow for backward-compatibility hygiene scanning.
 - Enable `repo_description_sync` periodic workflow to keep the GitHub repo description aligned with README.
