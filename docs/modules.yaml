@@ -1,0 +1,35 @@
+package: robotsix_github_auth
+modules:
+  - id: root
+    description: Root-level project configuration files
+    paths:
+      - README.md
+      - CHANGELOG.md
+      - pyproject.toml
+      - uv.lock
+      - .gitignore
+
+  - id: ci
+    description: CI workflow definitions
+    paths:
+      - .github/workflows/**
+
+  - id: mill
+    description: robotsix-mill periodic workflow configurations
+    paths:
+      - .robotsix-mill/**
+
+  - id: docs
+    description: Project documentation
+    paths:
+      - docs/**
+
+  - id: core
+    description: Core GitHub App auth library — JWT signing, token minting, caching, scope validation
+    paths:
+      - src/robotsix_github_auth/**
+
+  - id: tests
+    description: Test suite for the GitHub auth library
+    paths:
+      - tests/**

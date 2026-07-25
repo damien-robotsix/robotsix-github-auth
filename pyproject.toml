@@ -2,7 +2,7 @@
 name = "robotsix-github-auth"
 version = "0.1.0"
 description = "Fleet-wide GitHub App authorization library: JWT signing + installation-token minting/caching + scope validation."
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 readme = "README.md"
 license = { text = "MIT" }
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest>=9",
     "pytest-httpx>=0.35",
+    "robotsix-modules",
     "ruff>=0.9",
     "mypy>=1.14",
     "deptry>=0.23",
@@ -29,7 +30,7 @@ build-backend = "hatchling.build"
 packages = ["src/robotsix_github_auth"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 100
 
 [tool.ruff.lint]
@@ -53,6 +54,7 @@ testpaths = ["tests"]
 
 [tool.uv.sources]
 robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "4cf79993f07c0d56e50cf02af816058144beacb9" }
+robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", rev = "c134bff092e71ef05a292d45759b01e4d5eb852f" }
 
 [tool.deptry]
 known_first_party = ["robotsix_github_auth"]
@@ -60,7 +62,7 @@ optional_dependencies_dev_groups = ["dev"]
 
 [tool.mypy]
 strict = true
-python_version = "3.12"
+python_version = "3.14"
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 disallow_untyped_defs = false

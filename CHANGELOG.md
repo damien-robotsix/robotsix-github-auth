@@ -1,5 +1,9 @@
 ## 0.0.0 (unreleased)
 
+- Adopt `robotsix-modules` for module registration: add as dev dependency,
+  create `docs/modules.yaml` classifying all source modules, and add
+  module validation job to CI. Bump `requires-python` to `>=3.14` (required by
+  robotsix-modules) and update CI matrix accordingly.
 - Enable `copy_paste` periodic workflow (jscpd duplicate detection).
 - Enable the `survey` periodic workflow in `.robotsix-mill/periodic/survey.yaml`.
 - Enable `bc_check` periodic workflow for backward-compatibility hygiene scanning.
