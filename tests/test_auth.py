@@ -190,6 +190,27 @@ class TestMintInstallationToken:
         assert token2.token == "ghs_first"
         assert token2 is token1  # Same object from cache
 
+    def test_caches_and_reuses_token_with_owner_repo(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        self._mock_installation_api(httpx_mock)
+        # Register a second installation-resolution response — the cache
+        # check happens after resolution, so the second call will still
+        # resolve before hitting the cache.
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            json={"id": 42},
+            status_code=200,
+        )
+        # First call: resolve + mint
+        token1 = mint_installation_token(app_id, private_key, owner="octocat", repo="hello-world")
+        assert token1.token == "ghs_mocktoken123"
+
+        # Second call: resolves, then returns cached token (no mint call)
+        token2 = mint_installation_token(app_id, private_key, owner="octocat", repo="hello-world")
+        assert token2.token == "ghs_mocktoken123"
+        assert token2 is token1  # Same object from cache
+
     def test_different_scopes_different_cache_entries(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
     ) -> None:

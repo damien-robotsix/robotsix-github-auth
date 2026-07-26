@@ -158,6 +158,9 @@ def mint_installation_token(
     else:
         assert owner is not None and repo is not None
         resolved_id = _resolve_installation_id(jwt_token, owner, repo)
+        cached = _token_cache.get(resolved_id, scopes)
+        if cached is not None:
+            return cached
 
     token = _mint_token(jwt_token, resolved_id, scopes)
 
