@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Fix cache bypass in `mint_installation_token()` when called with `owner`/`repo` — the cache is now checked after resolving the installation ID, preventing unnecessary token-minting API calls.
 - Adopt `robotsix-modules` for module registration: add as dev dependency,
   create `docs/modules.yaml` classifying all source modules, and add
   module validation job to CI. Bump `requires-python` to `>=3.14` (required by

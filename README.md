@@ -20,7 +20,7 @@ token = mint_installation_token(
     private_key=open("my-app.pem").read(),
     installation_id="987654",
 )
-print(token.token)       # "ghs_…"
+print(token.token)  # "ghs_…"
 print(token.expires_at)  # 2026-07-22 10:30:00+00:00
 ```
 
@@ -63,8 +63,8 @@ Callers that need to force a fresh token can clear the cache:
 ```python
 from robotsix_github_auth import invalidate_token_cache, clear_token_cache
 
-invalidate_token_cache("987654")   # clear one installation
-clear_token_cache()                # clear everything
+invalidate_token_cache("987654")  # clear one installation
+clear_token_cache()  # clear everything
 ```
 
 ### Scope validation
@@ -118,7 +118,7 @@ Returns `InstallationToken`.  Raises `TokenMintError` on failure.
 @dataclass
 class InstallationToken:
     token: str
-    expires_at: datetime       # UTC-aware
+    expires_at: datetime  # UTC-aware
     permissions: dict[str, str]
 
     @property
