@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 from datetime import UTC, datetime, timedelta
 
+from robotsix_github_auth import clear_token_cache, invalidate_token_cache
 from robotsix_github_auth._cache import _freeze_scopes, _token_cache
 from robotsix_github_auth._models import InstallationToken
 
@@ -72,6 +73,25 @@ class TestTokenCache:
         assert _token_cache.get("inst1", {"a": "read"}) is None
         assert _token_cache.get("inst1", {"b": "read"}) is None
         assert _token_cache.get("inst2") is not None
+
+    def test_invalidate_token_cache_public_api(self) -> None:
+        tok_a = _make_token(10)
+        tok_b = _make_token(10)
+        _token_cache.put("inst1", {"a": "read"}, tok_a)
+        _token_cache.put("inst1", {"b": "read"}, tok_b)
+        _token_cache.put("inst2", None, _make_token(10))
+
+        invalidate_token_cache("inst1")
+        assert _token_cache.get("inst1", {"a": "read"}) is None
+        assert _token_cache.get("inst1", {"b": "read"}) is None
+        assert _token_cache.get("inst2") is not None
+
+    def test_clear_token_cache_public_api(self) -> None:
+        _token_cache.put("inst1", None, _make_token(10))
+        _token_cache.put("inst2", None, _make_token(10))
+        clear_token_cache()
+        assert _token_cache.get("inst1") is None
+        assert _token_cache.get("inst2") is None
 
     def test_clear_removes_everything(self) -> None:
         _token_cache.put("inst1", None, _make_token(10))
