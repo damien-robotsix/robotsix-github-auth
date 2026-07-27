@@ -100,13 +100,15 @@ def _mint_token(
     data: dict[str, Any] = resp.json()
     try:
         expires_at_str: str = data["expires_at"]
-    except KeyError as exc:
+        expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=UTC)
+        token_str: str = data["token"]
+    except (KeyError, ValueError) as exc:
         raise TokenMintError(
-            f"Malformed token response for installation {installation_id}: missing 'expires_at'"
+            f"Malformed token response for installation {installation_id}: "
+            f"missing or invalid field ({exc})"
         ) from exc
-    expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=UTC)
     return InstallationToken(
-        token=data["token"],
+        token=token_str,
         expires_at=expires_at,
         permissions=data.get("permissions", {}),
     )

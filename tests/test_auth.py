@@ -278,7 +278,29 @@ class TestMintInstallationToken:
             json={"token": "ghs_notime"},
             status_code=201,
         )
-        with pytest.raises(TokenMintError, match="missing 'expires_at'"):
+        with pytest.raises(TokenMintError, match="missing or invalid field"):
+            mint_installation_token(app_id, private_key, installation_id="42")
+
+    def test_raises_on_missing_token_field(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={"expires_at": (datetime.now(UTC) + timedelta(hours=1)).isoformat()},
+            status_code=201,
+        )
+        with pytest.raises(TokenMintError, match="missing or invalid field"):
+            mint_installation_token(app_id, private_key, installation_id="42")
+
+    def test_raises_on_invalid_iso_timestamp(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={"token": "ghs_badtime", "expires_at": "not-a-timestamp"},
+            status_code=201,
+        )
+        with pytest.raises(TokenMintError, match="missing or invalid field"):
             mint_installation_token(app_id, private_key, installation_id="42")
 
     def test_passes_scopes_in_request(
