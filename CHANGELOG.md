@@ -1,6 +1,7 @@
 ## 0.0.0 (unreleased)
 
 - Add `.pre-commit-config.yaml` with pre-commit-hooks (file sanity), ruff (lint + format), and mypy (pre-push type-checking)
+- Wrap `resp.json()` calls in `_resolve_installation_id` and `_mint_token` inside the existing try/except blocks so that `JSONDecodeError` (e.g. from a proxy injecting an HTML error page) is caught and wrapped in `TokenMintError` instead of leaking as a bare exception.)
 - `_mint_token()` now wraps all response-parse failure points in `TokenMintError` — missing `"token"` key and invalid ISO-8601 `expires_at` no longer leak bare `KeyError` / `ValueError`.
 - Fix cache bypass in `mint_installation_token()` when called with `owner`/`repo` — the cache is now checked after resolving the installation ID, preventing unnecessary token-minting API calls.
 - Adopt `robotsix-modules` for module registration: add as dev dependency,
