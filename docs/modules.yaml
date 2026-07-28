@@ -8,6 +8,7 @@ modules:
       - pyproject.toml
       - uv.lock
       - .gitignore
+      - .pre-commit-config.yaml
 
   - id: ci
     description: CI workflow definitions
