@@ -89,6 +89,18 @@ class TestResolveInstallationId:
         with pytest.raises(TokenMintError, match="No installation found"):
             _resolve_installation_id(jwt_token, "octocat", "hello-world")
 
+    def test_resolve_installation_non_json_response(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            html="<html>Proxy Error</html>",
+            status_code=200,
+        )
+        with pytest.raises(TokenMintError):
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
+
 
 class TestMintInstallationToken:
     def setup_method(self) -> None:
@@ -279,6 +291,17 @@ class TestMintInstallationToken:
             status_code=201,
         )
         with pytest.raises(TokenMintError, match="missing or invalid field"):
+            mint_installation_token(app_id, private_key, installation_id="42")
+
+    def test_mint_token_non_json_response(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            html="<html>Proxy Error</html>",
+            status_code=201,
+        )
+        with pytest.raises(TokenMintError):
             mint_installation_token(app_id, private_key, installation_id="42")
 
     def test_raises_on_missing_token_field(

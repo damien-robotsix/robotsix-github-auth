@@ -52,14 +52,16 @@ def _resolve_installation_id(
             config=_RETRY_CONFIG,
         )
         resp.raise_for_status()
+        data: dict[str, Any] = resp.json()
     except httpx.HTTPStatusError as exc:
         raise TokenMintError(
             f"Failed to resolve installation for {owner}/{repo}: HTTP {exc.response.status_code}"
         ) from exc
     except httpx.RequestError as exc:
         raise TokenMintError(f"Failed to resolve installation for {owner}/{repo}: {exc}") from exc
+    except Exception as exc:
+        raise TokenMintError(f"Failed to resolve installation for {owner}/{repo}: {exc}") from exc
 
-    data: dict[str, Any] = resp.json()
     installation_id: str | None = str(data.get("id", "")) or None
     if not installation_id:
         raise TokenMintError(f"No installation found for {owner}/{repo}")
@@ -87,6 +89,7 @@ def _mint_token(
             config=_RETRY_CONFIG,
         )
         resp.raise_for_status()
+        data: dict[str, Any] = resp.json()
     except httpx.HTTPStatusError as exc:
         raise TokenMintError(
             f"Failed to mint token for installation {installation_id}: "
@@ -96,8 +99,11 @@ def _mint_token(
         raise TokenMintError(
             f"Failed to mint token for installation {installation_id}: {exc}"
         ) from exc
+    except Exception as exc:
+        raise TokenMintError(
+            f"Failed to mint token for installation {installation_id}: {exc}"
+        ) from exc
 
-    data: dict[str, Any] = resp.json()
     try:
         expires_at_str: str = data["expires_at"]
         expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=UTC)
