@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Document CI workflow conventions in README: `persist-credentials: false` on every checkout step, `setup-uv` before any `uv` command, and mirror existing job conventions for new jobs.
 - Add `.pre-commit-config.yaml` with pre-commit-hooks (file sanity), ruff (lint + format), and mypy (pre-push type-checking)
 - Wrap `resp.json()` calls in `_resolve_installation_id` and `_mint_token` inside the existing try/except blocks so that `JSONDecodeError` (e.g. from a proxy injecting an HTML error page) is caught and wrapped in `TokenMintError` instead of leaking as a bare exception.)
 - `_mint_token()` now wraps all response-parse failure points in `TokenMintError` — missing `"token"` key and invalid ISO-8601 `expires_at` no longer leak bare `KeyError` / `ValueError`.
