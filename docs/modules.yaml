@@ -25,6 +25,11 @@ modules:
     paths:
       - docs/**
 
+  - id: scripts
+    description: Utility scripts for CI and development workflows
+    paths:
+      - scripts/**
+
   - id: core
     description: Core GitHub App auth library — JWT signing, token minting, caching, scope validation
     paths:

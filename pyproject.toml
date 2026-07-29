@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest>=9",
     "pytest-httpx>=0.35",
+    "pyyaml>=6",
     "robotsix-modules",
     "ruff>=0.9",
     "mypy>=1.14",
