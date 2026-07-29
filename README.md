@@ -169,6 +169,20 @@ uv run mypy src/
 uv run deptry .
 ```
 
+## CI workflow conventions
+
+- **`persist-credentials: false`** — Every `actions/checkout` step in a
+  CI job MUST include `persist-credentials: false` to suppress zizmor
+  `artipacked` findings.
+
+- **`setup-uv`** — Every CI job that invokes `uv` MUST include an
+  `astral-sh/setup-uv` step before any `uv` command.
+
+- **Mirror existing conventions** — New jobs should copy shared step
+  conventions from existing jobs (runner hardening, checkout with
+  `persist-credentials: false`, `setup-uv`, frozen sync).  See
+  `.github/workflows/ci.yml` for the canonical template.
+
 ## License
 
 MIT
