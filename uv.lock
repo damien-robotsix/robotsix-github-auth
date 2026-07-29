@@ -553,6 +553,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-httpx" },
+    { name = "pyyaml" },
     { name = "robotsix-modules" },
     { name = "ruff" },
 ]
@@ -566,6 +567,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6" },
     { name = "pytest-httpx", marker = "extra == 'dev'", specifier = ">=0.35" },
+    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6" },
     { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=4cf79993f07c0d56e50cf02af816058144beacb9" },
     { name = "robotsix-modules", marker = "extra == 'dev'", git = "https://github.com/damien-robotsix/robotsix-modules.git?rev=c134bff092e71ef05a292d45759b01e4d5eb852f" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9" },
