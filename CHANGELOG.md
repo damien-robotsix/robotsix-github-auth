@@ -2,6 +2,7 @@
 
 - Document CI workflow conventions in README: `persist-credentials: false` on every checkout step, `setup-uv` before any `uv` command, and mirror existing job conventions for new jobs.
 - Add CI workflow convention validation: new `scripts/check_ci_conventions.py` checks that every job in `.github/workflows/ci.yml` follows shared step patterns (harden-runner first, `persist-credentials: false` on checkout, `astral-sh/setup-uv` when using uv), and a `ci-conventions` CI job enforces these rules on every push and PR.
+- Extracted CI job boilerplate (harden-runner, checkout, setup-uv) into a local composite action at `.github/actions/setup` to reduce duplication across all 7 CI jobs.
 - Add `.pre-commit-config.yaml` with pre-commit-hooks (file sanity), ruff (lint + format), and mypy (pre-push type-checking)
 - Wrap `resp.json()` calls in `_resolve_installation_id` and `_mint_token` inside the existing try/except blocks so that `JSONDecodeError` (e.g. from a proxy injecting an HTML error page) is caught and wrapped in `TokenMintError` instead of leaking as a bare exception.)
 - `_mint_token()` now wraps all response-parse failure points in `TokenMintError` — missing `"token"` key and invalid ISO-8601 `expires_at` no longer leak bare `KeyError` / `ValueError`.

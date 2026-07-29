@@ -13,9 +13,46 @@ Usage:
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from typing import Any
 
 import yaml  # type: ignore[import-untyped] # deptry: ignore[DEP004]
+
+
+def _load_composite_action(uses: str, workflow_dir: Path) -> dict[str, Any] | None:
+    """If *uses* points to a local composite action, load its action.yml.
+
+    Returns the parsed action definition, or ``None`` if it is not a local
+    action or cannot be loaded.
+    """
+    if not uses.startswith("./"):
+        return None
+    action_dir = workflow_dir / uses
+    action_yml = action_dir / "action.yml"
+    if not action_yml.is_file():
+        # also try action.yaml
+        action_yml = action_dir / "action.yaml"
+    if not action_yml.is_file():
+        return None
+    with open(action_yml) as fh:
+        doc: Any = yaml.safe_load(fh)
+    if isinstance(doc, dict) and doc.get("runs", {}).get("using") == "composite":
+        return doc
+    return None
+
+
+def _expand_steps(steps: list[dict[str, Any]], workflow_dir: Path) -> list[dict[str, Any]]:
+    """Recursively expand composite action steps, returning a flat step list."""
+    expanded: list[dict[str, Any]] = []
+    for step in steps:
+        uses = step.get("uses", "")
+        action_doc = _load_composite_action(uses, workflow_dir)
+        if action_doc is not None:
+            inner = action_doc["runs"].get("steps", [])
+            expanded.extend(_expand_steps(inner, workflow_dir))
+        else:
+            expanded.append(step)
+    return expanded
 
 
 def _first_step_uses(step: dict[str, Any], action: str) -> bool:
@@ -52,9 +89,24 @@ def _checkout_steps_missing_persist_credentials(
     return issues
 
 
-def check_workflow(path: str) -> list[str]:
+def _find_repo_root(path: str) -> Path:
+    """Find the repository root by walking up from *path* until .git/ is found."""
+    p = Path(path).resolve().parent
+    while p != p.parent:
+        if (p / ".git").is_dir():
+            return p
+        p = p.parent
+    # Fallback: assume 2 levels up from .github/workflows/
+    return Path(path).resolve().parent.parent.parent
+
+
+def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
     """Validate *path* (a GitHub Actions workflow YAML) and return a list of issues."""
     errors: list[str] = []
+    if workflow_dir is None:
+        # Local composite actions (uses: ./...) are resolved relative to
+        # the repository root, not the workflow file's directory.
+        workflow_dir = _find_repo_root(path)
 
     with open(path) as fh:
         doc: Any = yaml.safe_load(fh)
@@ -74,24 +126,34 @@ def check_workflow(path: str) -> list[str]:
             errors.append(f"[{job_name}] No steps defined.")
             continue
 
+        # Expand composite actions so their internal steps are visible
+        # to all convention checks.
+        expanded_steps = _expand_steps(steps, workflow_dir)
+
         # 1. Every job MUST have step-security/harden-runner as first step.
-        if not _first_step_uses(steps[0], "step-security/harden-runner"):
+        if not expanded_steps or not _first_step_uses(
+            expanded_steps[0], "step-security/harden-runner"
+        ):
+            first_uses = expanded_steps[0].get("uses", "<none>") if expanded_steps else "<none>"
             errors.append(
                 f"[{job_name}] First step is not step-security/harden-runner "
-                f"(found: {steps[0].get('uses', '<none>')})."
+                f"(found: {first_uses})."
             )
 
         # 2. Every actions/checkout step MUST have persist-credentials: false.
         errors.extend(
-            f"[{job_name}] {issue}" for issue in _checkout_steps_missing_persist_credentials(steps)
+            f"[{job_name}] {issue}"
+            for issue in _checkout_steps_missing_persist_credentials(expanded_steps)
         )
 
         # 3. Every job that runs ``uv`` MUST have astral-sh/setup-uv.
-        if _runs_uv_command(steps) and not _has_step_using(steps, "astral-sh/setup-uv"):
+        if _runs_uv_command(expanded_steps) and not _has_step_using(
+            expanded_steps, "astral-sh/setup-uv"
+        ):
             errors.append(f"[{job_name}] Runs uv/uvx but has no astral-sh/setup-uv step.")
 
         # 4. Every job using ``uv sync`` MUST pass ``--frozen``.
-        for step in steps:
+        for step in expanded_steps:
             run = step.get("run", "")
             if isinstance(run, str) and "uv sync" in run and "--frozen" not in run:
                 errors.append(f"[{job_name}] ``uv sync`` without ``--frozen`` flag.")
