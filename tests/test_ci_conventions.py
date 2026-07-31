@@ -6,6 +6,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 
 # Import the check_workflow function from the scripts module.
@@ -40,6 +41,21 @@ def _write_composite_action(root: Path, rel_dir: str, steps: list[dict]) -> None
     action_dir.mkdir(parents=True, exist_ok=True)
     action_yml = action_dir / "action.yml"
     action_yml.write_text(yaml.dump({"runs": {"using": "composite", "steps": steps}}))
+
+
+def _assert_single_violation(
+    tmp_path: Path,
+    doc: dict,
+    expected_substring: str,
+    *,
+    workflow_filename: str = "ci.yml",
+) -> None:
+    """Write *doc* as a workflow and assert exactly one error containing *expected_substring*."""
+    root = _make_repo(tmp_path)
+    wf = _write_workflow(root, doc, workflow_filename=workflow_filename)
+    errors = check_workflow(str(wf))
+    assert len(errors) == 1
+    assert expected_substring in errors[0]
 
 
 # ---------------------------------------------------------------------------
@@ -79,27 +95,31 @@ def test_happy_path_valid_workflow(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_missing_harden_runner_first_step_not_harden(tmp_path: Path) -> None:
-    """First step is checkout instead of harden-runner → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {
-                        "uses": "actions/checkout@v4",
-                        "with": {"persist-credentials": False},
+@pytest.mark.parametrize(
+    "doc,expected_error",
+    [
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {
+                                "uses": "actions/checkout@v4",
+                                "with": {"persist-credentials": False},
+                            },
+                        ],
                     },
-                ],
+                },
             },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "harden-runner" in errors[0]
+            "harden-runner",
+        ),
+    ],
+)
+def test_missing_harden_runner(tmp_path: Path, doc: dict, expected_error: str) -> None:
+    """First step is not harden-runner → error."""
+    _assert_single_violation(tmp_path, doc, expected_error)
 
 
 # ---------------------------------------------------------------------------
@@ -107,49 +127,47 @@ def test_missing_harden_runner_first_step_not_harden(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_missing_persist_credentials(tmp_path: Path) -> None:
-    """Checkout without persist-credentials: false → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {"uses": "step-security/harden-runner@v2"},
-                    {"uses": "actions/checkout@v4"},
-                ],
-            },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "persist-credentials" in errors[0]
-
-
-def test_persist_credentials_true_is_also_an_error(tmp_path: Path) -> None:
-    """persist-credentials: true is not the same as false → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {"uses": "step-security/harden-runner@v2"},
-                    {
-                        "uses": "actions/checkout@v4",
-                        "with": {"persist-credentials": True},
+@pytest.mark.parametrize(
+    "doc,expected_error",
+    [
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {"uses": "step-security/harden-runner@v2"},
+                            {"uses": "actions/checkout@v4"},
+                        ],
                     },
-                ],
+                },
             },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "persist-credentials" in errors[0]
+            "persist-credentials",
+        ),
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {"uses": "step-security/harden-runner@v2"},
+                            {
+                                "uses": "actions/checkout@v4",
+                                "with": {"persist-credentials": True},
+                            },
+                        ],
+                    },
+                },
+            },
+            "persist-credentials",
+        ),
+    ],
+)
+def test_persist_credentials_violations(tmp_path: Path, doc: dict, expected_error: str) -> None:
+    """Checkout without persist-credentials: false → error."""
+    _assert_single_violation(tmp_path, doc, expected_error)
 
 
 # ---------------------------------------------------------------------------
@@ -157,54 +175,52 @@ def test_persist_credentials_true_is_also_an_error(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_missing_setup_uv(tmp_path: Path) -> None:
-    """Job runs uv without astral-sh/setup-uv → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {"uses": "step-security/harden-runner@v2"},
-                    {
-                        "uses": "actions/checkout@v4",
-                        "with": {"persist-credentials": False},
+@pytest.mark.parametrize(
+    "doc,expected_error",
+    [
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {"uses": "step-security/harden-runner@v2"},
+                            {
+                                "uses": "actions/checkout@v4",
+                                "with": {"persist-credentials": False},
+                            },
+                            {"run": "uv run pytest"},
+                        ],
                     },
-                    {"run": "uv run pytest"},
-                ],
+                },
             },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "astral-sh/setup-uv" in errors[0]
-
-
-def test_uvx_without_setup_uv(tmp_path: Path) -> None:
-    """Job runs uvx without astral-sh/setup-uv → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {"uses": "step-security/harden-runner@v2"},
-                    {
-                        "uses": "actions/checkout@v4",
-                        "with": {"persist-credentials": False},
+            "astral-sh/setup-uv",
+        ),
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {"uses": "step-security/harden-runner@v2"},
+                            {
+                                "uses": "actions/checkout@v4",
+                                "with": {"persist-credentials": False},
+                            },
+                            {"run": "uvx deptry ."},
+                        ],
                     },
-                    {"run": "uvx deptry ."},
-                ],
+                },
             },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "astral-sh/setup-uv" in errors[0]
+            "astral-sh/setup-uv",
+        ),
+    ],
+)
+def test_missing_setup_uv(tmp_path: Path, doc: dict, expected_error: str) -> None:
+    """Job runs uv/uvx without astral-sh/setup-uv → error."""
+    _assert_single_violation(tmp_path, doc, expected_error)
 
 
 # ---------------------------------------------------------------------------
@@ -212,57 +228,55 @@ def test_uvx_without_setup_uv(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_missing_frozen_on_uv_sync(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "doc,expected_error",
+    [
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {"uses": "step-security/harden-runner@v2"},
+                            {
+                                "uses": "actions/checkout@v4",
+                                "with": {"persist-credentials": False},
+                            },
+                            {"uses": "astral-sh/setup-uv@v5"},
+                            {"run": "uv sync"},
+                        ],
+                    },
+                },
+            },
+            "--frozen",
+        ),
+        (
+            {
+                "on": "push",
+                "jobs": {
+                    "build": {
+                        "runs-on": "ubuntu-latest",
+                        "steps": [
+                            {"uses": "step-security/harden-runner@v2"},
+                            {
+                                "uses": "actions/checkout@v4",
+                                "with": {"persist-credentials": False},
+                            },
+                            {"uses": "astral-sh/setup-uv@v5"},
+                            {"run": "uv sync --frozen"},
+                            {"run": "uv sync"},
+                        ],
+                    },
+                },
+            },
+            "--frozen",
+        ),
+    ],
+)
+def test_missing_frozen(tmp_path: Path, doc: dict, expected_error: str) -> None:
     """uv sync without --frozen → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {"uses": "step-security/harden-runner@v2"},
-                    {
-                        "uses": "actions/checkout@v4",
-                        "with": {"persist-credentials": False},
-                    },
-                    {"uses": "astral-sh/setup-uv@v5"},
-                    {"run": "uv sync"},
-                ],
-            },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "--frozen" in errors[0]
-
-
-def test_frozen_flag_is_checked_per_step(tmp_path: Path) -> None:
-    """One step has frozen, another doesn't — only the unfrozen one errors."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    {"uses": "step-security/harden-runner@v2"},
-                    {
-                        "uses": "actions/checkout@v4",
-                        "with": {"persist-credentials": False},
-                    },
-                    {"uses": "astral-sh/setup-uv@v5"},
-                    {"run": "uv sync --frozen"},
-                    {"run": "uv sync"},
-                ],
-            },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "--frozen" in errors[0]
+    _assert_single_violation(tmp_path, doc, expected_error)
 
 
 # ---------------------------------------------------------------------------
@@ -370,12 +384,7 @@ def test_composite_action_expands_inner_steps_for_persist_credentials(
 
 def test_empty_jobs(tmp_path: Path) -> None:
     """Empty jobs dict → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {"on": "push", "jobs": {}}
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "No jobs" in errors[0]
+    _assert_single_violation(tmp_path, {"on": "push", "jobs": {}}, "No jobs")
 
 
 def test_malformed_yaml_not_a_dict(tmp_path: Path) -> None:
@@ -389,37 +398,20 @@ def test_malformed_yaml_not_a_dict(tmp_path: Path) -> None:
 
 def test_job_without_steps_key(tmp_path: Path) -> None:
     """A job definition missing 'steps' → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-            },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "No steps" in errors[0]
+    _assert_single_violation(
+        tmp_path,
+        {"on": "push", "jobs": {"build": {"runs-on": "ubuntu-latest"}}},
+        "No steps",
+    )
 
 
 def test_job_with_empty_steps(tmp_path: Path) -> None:
     """A job with an empty steps list → error."""
-    root = _make_repo(tmp_path)
-    doc: dict = {
-        "on": "push",
-        "jobs": {
-            "build": {
-                "runs-on": "ubuntu-latest",
-                "steps": [],
-            },
-        },
-    }
-    wf = _write_workflow(root, doc)
-    errors = check_workflow(str(wf))
-    assert len(errors) == 1
-    assert "No steps" in errors[0]
+    _assert_single_violation(
+        tmp_path,
+        {"on": "push", "jobs": {"build": {"runs-on": "ubuntu-latest", "steps": []}}},
+        "No steps",
+    )
 
 
 def test_multiple_jobs_all_violations(tmp_path: Path) -> None:
