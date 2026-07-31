@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Move `tests/test_ci_conventions.py` to per-module layout at `tests/scripts/test_ci_conventions.py` and update relative path resolution
 - Fix token-expiry datetime parsing: use `.astimezone(UTC)` instead of `.replace(tzinfo=UTC)` to preserve the absolute instant when converting non-UTC offsets.
 - Enable `module_curator` and `module_size` periodic workflows.
 - Document CI workflow conventions in README: `persist-credentials: false` on every checkout step, `setup-uv` before any `uv` command, and mirror existing job conventions for new jobs.

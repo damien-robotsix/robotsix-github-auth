@@ -30,6 +30,7 @@ modules:
     description: Utility scripts for CI and development workflows
     paths:
       - scripts/**
+      - tests/scripts/**
 
   - id: core
     description: Core GitHub App auth library — JWT signing, token minting, caching, scope validation
@@ -40,4 +41,4 @@ modules:
   - id: tests
     description: Test suite for the GitHub auth library
     paths:
-      - tests/**
+      - tests/*.py

@@ -10,7 +10,7 @@ import pytest
 import yaml
 
 # Import the check_workflow function from the scripts module.
-_scripts_dir = Path(__file__).resolve().parent.parent / "scripts"
+_scripts_dir = Path(__file__).resolve().parent.parent.parent / "scripts"
 _spec = importlib.util.spec_from_file_location(
     "check_ci_conventions", _scripts_dir / "check_ci_conventions.py"
 )
