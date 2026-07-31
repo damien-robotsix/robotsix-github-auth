@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Move `docs/ci-conventions.md` to per-module `docs/ci/ci-conventions.md` and register `docs/ci/**` under the `ci` module in `docs/modules.yaml`.
 - Move `tests/test_ci_conventions.py` to per-module layout at `tests/scripts/test_ci_conventions.py` and update relative path resolution
 - Fix token-expiry datetime parsing: use `.astimezone(UTC)` instead of `.replace(tzinfo=UTC)` to preserve the absolute instant when converting non-UTC offsets.
 - Enable `module_curator` and `module_size` periodic workflows.

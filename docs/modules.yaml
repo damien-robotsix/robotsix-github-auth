@@ -15,6 +15,7 @@ modules:
     paths:
       - .github/actions/**
       - .github/workflows/**
+      - docs/ci/**
 
   - id: mill
     description: robotsix-mill periodic workflow configurations
