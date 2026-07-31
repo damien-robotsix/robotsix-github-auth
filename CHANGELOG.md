@@ -1,6 +1,7 @@
 ## 0.0.0 (unreleased)
 
 - Fix token-expiry datetime parsing: use `.astimezone(UTC)` instead of `.replace(tzinfo=UTC)` to preserve the absolute instant when converting non-UTC offsets.
+- Enable `module_curator` and `module_size` periodic workflows.
 - Document CI workflow conventions in README: `persist-credentials: false` on every checkout step, `setup-uv` before any `uv` command, and mirror existing job conventions for new jobs.
 - Add CI workflow convention validation: new `scripts/check_ci_conventions.py` checks that every job in `.github/workflows/ci.yml` follows shared step patterns (harden-runner first, `persist-credentials: false` on checkout, `astral-sh/setup-uv` when using uv), and a `ci-conventions` CI job enforces these rules on every push and PR.
 - Extracted `astral-sh/setup-uv` into a local composite action at `.github/actions/setup` to reduce duplication across all CI jobs. (harden-runner and `actions/checkout` were intentionally kept at job level because a local composite action cannot be resolved before checkout runs.)
