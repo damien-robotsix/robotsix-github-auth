@@ -25,7 +25,7 @@ modules:
   - id: docs
     description: Project documentation
     paths:
-      - docs/**
+      - docs/modules.yaml
 
   - id: scripts
     description: Utility scripts for CI and development workflows
