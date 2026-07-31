@@ -44,4 +44,3 @@ modules:
     description: Test suite for the GitHub auth library
     paths:
       - tests/__init__.py
-      - tests/test_ci_conventions.py
