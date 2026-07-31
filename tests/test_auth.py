@@ -326,6 +326,23 @@ class TestMintInstallationToken:
         with pytest.raises(TokenMintError, match="missing or invalid field"):
             mint_installation_token(app_id, private_key, installation_id="42")
 
+    def test_expires_at_parsed_as_utc(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """The expires_at field from GitHub's Z-suffixed ISO string is parsed as UTC."""
+        expires_at_gh = "2024-11-25T01:00:02Z"
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={
+                "token": "ghs_timetest",
+                "expires_at": expires_at_gh,
+                "permissions": {"contents": "read"},
+            },
+            status_code=201,
+        )
+        token = mint_installation_token(app_id, private_key, installation_id="42")
+        assert token.expires_at == datetime(2024, 11, 25, 1, 0, 2, tzinfo=UTC)
+
     def test_passes_scopes_in_request(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
     ) -> None:
