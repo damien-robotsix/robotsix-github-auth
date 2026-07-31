@@ -15,6 +15,7 @@ modules:
     paths:
       - .github/actions/**
       - .github/workflows/**
+      - docs/ci/**
 
   - id: mill
     description: robotsix-mill periodic workflow configurations
@@ -24,7 +25,7 @@ modules:
   - id: docs
     description: Project documentation
     paths:
-      - docs/**
+      - docs/modules.yaml
 
   - id: scripts
     description: Utility scripts for CI and development workflows
