@@ -106,7 +106,7 @@ def _mint_token(
 
     try:
         expires_at_str: str = data["expires_at"]
-        expires_at = datetime.fromisoformat(expires_at_str).replace(tzinfo=UTC)
+        expires_at = datetime.fromisoformat(expires_at_str).astimezone(UTC)
         token_str: str = data["token"]
     except (KeyError, ValueError) as exc:
         raise TokenMintError(
