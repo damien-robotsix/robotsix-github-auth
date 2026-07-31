@@ -37,9 +37,10 @@ modules:
     description: Core GitHub App auth library — JWT signing, token minting, caching, scope validation
     paths:
       - src/robotsix_github_auth/**
+      - tests/core/**
       - changelog.d/*.md
 
   - id: tests
     description: Test suite for the GitHub auth library
     paths:
-      - tests/*.py
+      - tests/__init__.py
