@@ -20,6 +20,9 @@ _JWT_EXPIRY_SECONDS: int = 600
 _JWT_CLOCK_SKEW: int = 60
 _RETRY_CONFIG: RetryConfig = RetryConfig(max_retries=2)
 
+_AUTH_TIMEOUT: float = 10.0
+_GITHUB_CLIENT = httpx.Client(timeout=httpx.Timeout(_AUTH_TIMEOUT))
+
 
 def _build_app_jwt(app_id: str, private_key: str) -> str:
     """Build a short-lived RS256 JWT for authenticating as a GitHub App."""
@@ -48,7 +51,7 @@ def _resolve_installation_id(
     }
     try:
         resp = call_with_retry(
-            lambda: httpx.get(url, headers=headers),
+            lambda: _GITHUB_CLIENT.get(url, headers=headers),
             config=_RETRY_CONFIG,
         )
         resp.raise_for_status()
@@ -85,7 +88,7 @@ def _mint_token(
     }
     try:
         resp = call_with_retry(
-            lambda: httpx.post(url, headers=headers, json=body),
+            lambda: _GITHUB_CLIENT.post(url, headers=headers, json=body),
             config=_RETRY_CONFIG,
         )
         resp.raise_for_status()
@@ -118,6 +121,11 @@ def _mint_token(
         expires_at=expires_at,
         permissions=data.get("permissions", {}),
     )
+
+
+def _close_github_client() -> None:
+    """Close the shared GitHub API HTTP client."""
+    _GITHUB_CLIENT.close()
 
 
 def mint_installation_token(
