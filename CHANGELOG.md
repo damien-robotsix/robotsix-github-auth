@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Replace bare `assert` with explicit `if`/`raise` in `_auth.py` to avoid silent failure under `python -O`.
 - Move `docs/ci-conventions.md` to per-module `docs/ci/ci-conventions.md` and register `docs/ci/**` under the `ci` module in `docs/modules.yaml`.
 - Move `tests/test_ci_conventions.py` to per-module layout at `tests/scripts/test_ci_conventions.py` and update relative path resolution
 - Reorganize test files into per-module `tests/core/` directory (pure `git mv`; no import or test-body changes).

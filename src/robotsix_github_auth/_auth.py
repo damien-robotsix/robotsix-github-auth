@@ -164,7 +164,8 @@ def mint_installation_token(
     if installation_id is not None:
         resolved_id = installation_id
     else:
-        assert owner is not None and repo is not None
+        if owner is None or repo is None:
+            raise TokenMintError("owner and repo must be provided when installation_id is omitted")
         resolved_id = _resolve_installation_id(jwt_token, owner, repo)
         cached = _token_cache.get(resolved_id, scopes)
         if cached is not None:
