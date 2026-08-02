@@ -138,6 +138,22 @@ def validate_scopes(
 
 Raises `ScopeError` when a required permission is missing or insufficient.
 
+### `invalidate_token_cache`
+
+```python
+def invalidate_token_cache(installation_id: str) -> None
+```
+
+Remove all cached tokens for the given installation ID.
+
+### `clear_token_cache`
+
+```python
+def clear_token_cache() -> None
+```
+
+Remove every cached token.
+
 ### Exceptions
 
 | Exception | Base | Description |
