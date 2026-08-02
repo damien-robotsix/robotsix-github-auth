@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Wire up `_close_github_client()` via `atexit.register()` so the persistent httpx client is closed on interpreter shutdown.
 - Adopt a persistent `httpx.Client` with an explicit 10s timeout in `_auth.py` for connection reuse and deterministic timeouts.
 - Replace bare `assert` with explicit `if`/`raise` in `_auth.py` to avoid silent failure under `python -O`.
 - Move `docs/ci-conventions.md` to per-module `docs/ci/ci-conventions.md` and register `docs/ci/**` under the `ci` module in `docs/modules.yaml`.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import time
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -126,6 +127,9 @@ def _mint_token(
 def _close_github_client() -> None:
     """Close the shared GitHub API HTTP client."""
     _GITHUB_CLIENT.close()
+
+
+atexit.register(_close_github_client)
 
 
 def mint_installation_token(
