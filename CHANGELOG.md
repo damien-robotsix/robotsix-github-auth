@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Add `.robotsix-mill/config.yaml` with `languages: [python]` to declare the repo's language scope for robotsix-mill periodic agents.
 - Add `py.typed` PEP 561 marker and `Typing :: Typed` trove classifier for downstream type-checker discoverability.
 - Document `invalidate_token_cache` and `clear_token_cache` in the README API reference section.
 - Wire up `_close_github_client()` via `atexit.register()` so the persistent httpx client is closed on interpreter shutdown.
