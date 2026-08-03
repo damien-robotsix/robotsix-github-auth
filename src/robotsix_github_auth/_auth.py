@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import atexit
+import threading
 import time
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -12,7 +13,7 @@ import httpx
 import jwt
 from robotsix_http import RetryConfig, call_with_retry
 
-from robotsix_github_auth._cache import _token_cache
+from robotsix_github_auth._cache import _freeze_scopes, _token_cache
 from robotsix_github_auth._exceptions import TokenMintError
 from robotsix_github_auth._models import InstallationToken
 
@@ -23,6 +24,35 @@ _RETRY_CONFIG: RetryConfig = RetryConfig(max_retries=2)
 
 _AUTH_TIMEOUT: float = 10.0
 _GITHUB_CLIENT = httpx.Client(timeout=httpx.Timeout(_AUTH_TIMEOUT))
+
+# Per-key locks for single-flight mint coalescing.
+# Keyed by the same (installation_id, frozen_scope_tuple) as _TokenCache
+# so that concurrent callers for distinct installations/scopes do not
+# block each other.
+_MintKey = tuple[str, tuple[tuple[str, str], ...]]
+_mint_locks: dict[_MintKey, threading.Lock] = {}
+_mint_locks_lock = threading.Lock()
+
+
+def _acquire_mint_lock(key: _MintKey) -> threading.Lock:
+    """Get or create the per-key lock, then acquire it.
+
+    Returns the acquired lock so the caller can use it as a context
+    manager::
+
+        lock = _acquire_mint_lock(key)
+        try:
+            ...
+        finally:
+            lock.release()
+    """
+    with _mint_locks_lock:
+        lock = _mint_locks.get(key)
+        if lock is None:
+            lock = threading.Lock()
+            _mint_locks[key] = lock
+    lock.acquire()
+    return lock
 
 
 def _build_app_jwt(app_id: str, private_key: str) -> str:
@@ -183,7 +213,16 @@ def mint_installation_token(
         if cached is not None:
             return cached
 
-    token = _mint_token(jwt_token, resolved_id, scopes)
-
-    _token_cache.put(resolved_id, scopes, token)
-    return token
+    key: _MintKey = (resolved_id, _freeze_scopes(scopes))
+    mint_lock = _acquire_mint_lock(key)
+    try:
+        # Double-checked locking: another thread may have populated
+        # the cache while we waited for the per-key lock.
+        cached = _token_cache.get(resolved_id, scopes)
+        if cached is not None:
+            return cached
+        token = _mint_token(jwt_token, resolved_id, scopes)
+        _token_cache.put(resolved_id, scopes, token)
+        return token
+    finally:
+        mint_lock.release()

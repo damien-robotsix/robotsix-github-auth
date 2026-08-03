@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -11,7 +12,7 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from pytest_httpx import HTTPXMock
 
-from robotsix_github_auth import TokenMintError, mint_installation_token
+from robotsix_github_auth import InstallationToken, TokenMintError, mint_installation_token
 from robotsix_github_auth._auth import _build_app_jwt, _resolve_installation_id
 from robotsix_github_auth._cache import _token_cache
 
@@ -368,3 +369,42 @@ class TestMintInstallationToken:
         body = json.loads(request.content)
         assert "permissions" in body
         assert body["permissions"] == {"contents": "read", "issues": "write"}
+
+    def test_single_flight_coalesces_concurrent_mints(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """N concurrent callers for the same installation hit the API exactly once."""
+        num_threads = 8
+        expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={
+                "token": "ghs_singleflight",
+                "expires_at": expires_at,
+                "permissions": {"contents": "read"},
+            },
+            status_code=201,
+        )
+
+        results: list[object] = [None] * num_threads
+        barrier = threading.Barrier(num_threads)
+
+        def worker(index: int) -> None:
+            barrier.wait()  # synchronise so all threads race simultaneously
+            results[index] = mint_installation_token(app_id, private_key, installation_id="42")
+
+        threads = [threading.Thread(target=worker, args=(i,)) for i in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Every caller got a valid token.
+        for result in results:
+            assert isinstance(result, InstallationToken)
+            assert result.token == "ghs_singleflight"
+
+        # The access_tokens endpoint was hit exactly once.
+        mint_requests = [r for r in httpx_mock.get_requests() if "access_tokens" in str(r.url)]
+        assert len(mint_requests) == 1
