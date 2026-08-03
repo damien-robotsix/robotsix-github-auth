@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Add `py.typed` PEP 561 marker and `Typing :: Typed` trove classifier for downstream type-checker discoverability.
 - Document `invalidate_token_cache` and `clear_token_cache` in the README API reference section.
 - Wire up `_close_github_client()` via `atexit.register()` so the persistent httpx client is closed on interpreter shutdown.
 - Adopt a persistent `httpx.Client` with an explicit 10s timeout in `_auth.py` for connection reuse and deterministic timeouts.

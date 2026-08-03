@@ -5,6 +5,9 @@ description = "Fleet-wide GitHub App authorization library: JWT signing + instal
 requires-python = ">=3.14"
 readme = "README.md"
 license = { text = "MIT" }
+classifiers = [
+    "Typing :: Typed",
+]
 dependencies = [
     "httpx>=0.28",
     "pyjwt[crypto]>=2.10",
