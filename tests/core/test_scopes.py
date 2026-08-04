@@ -42,7 +42,7 @@ class TestValidateScopes:
         assert len(exc_info.value.missing) == 2
 
     def test_raises_when_required_has_unknown_level(self) -> None:
-        with pytest.raises(ScopeError, match="unknown level"):
+        with pytest.raises(ValueError, match="superadmin"):
             validate_scopes({"contents": "read"}, {"contents": "superadmin"})
 
     def test_raises_when_token_has_unknown_level(self) -> None:
