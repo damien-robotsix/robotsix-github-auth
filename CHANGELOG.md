@@ -1,6 +1,7 @@
 ## 0.0.0 (unreleased)
 
 - Enable mypy_baseline periodic agent to track type-safety regressions, matching every other Python repo in the fleet.
+- Enable `pin_bump` periodic task to keep git-pinned dependency SHAs current
 - `validate_scopes` now raises `ValueError` (instead of folding into `ScopeError`) when the *required* minimum level is not one of `read`/`write`/`admin` — a caller configuration error. Token-side unknown levels continue to fail closed as `ScopeError`.
 - Upgrade transitive `cryptography` dependency from 49.0.0 to 50.0.0 (GHSA-g6cj-pr64-35w5)
 - `InstallationToken.is_expired` is now a method accepting an optional `margin_seconds` parameter (default 0.0), replacing the parameterless property. The token cache now dogfoods this API via `is_expired(margin_seconds=_REFRESH_MARGIN_SECONDS)` instead of a raw `seconds_remaining` comparison.
