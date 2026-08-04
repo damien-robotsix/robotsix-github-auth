@@ -9,7 +9,6 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "cryptography>=50.0.0",
     "httpx>=0.28",
     "pyjwt[crypto]>=2.10",
     "robotsix-http",
@@ -17,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "cryptography>=50.0.0",
     "pytest>=9",
     "pytest-httpx>=0.35",
     "pyyaml>=6",
