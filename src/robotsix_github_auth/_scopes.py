@@ -23,6 +23,8 @@ def validate_scopes(
             *minimum_level* is one of ``"read"``, ``"write"``, or ``"admin"``.
 
     Raises:
+        ValueError: When a required minimum level string is not one of
+            ``"read"``, ``"write"``, or ``"admin"`` (a caller configuration error).
         ScopeError: When a required permission is missing or its level is
             lower than the required minimum.
     """
@@ -36,8 +38,10 @@ def validate_scopes(
 
         min_level = _LEVELS.get(min_level_str)
         if min_level is None:
-            missing.append(f"{scope} (unknown level: {min_level_str})")
-            continue
+            raise ValueError(
+                f"Unknown required permission level '{min_level_str}' "
+                f"for '{scope}' (expected one of: read, write, admin)"
+            )
 
         current_level = _LEVELS.get(str(current))
         if current_level is None or current_level < min_level:
