@@ -38,9 +38,17 @@ class TestInstallationToken:
     def test_is_expired_false(self) -> None:
         future = datetime.now(UTC) + timedelta(minutes=10)
         tok = InstallationToken(token="ghs_abc123", expires_at=future)
-        assert tok.is_expired is False
+        assert tok.is_expired() is False
 
     def test_is_expired_true(self) -> None:
         past = datetime.now(UTC) - timedelta(minutes=10)
         tok = InstallationToken(token="ghs_abc123", expires_at=past)
-        assert tok.is_expired is True
+        assert tok.is_expired() is True
+
+    def test_is_expired_with_margin(self) -> None:
+        future = datetime.now(UTC) + timedelta(minutes=3)
+        tok = InstallationToken(token="ghs_abc123", expires_at=future)
+        # Not expired without margin
+        assert tok.is_expired() is False
+        # Expired within a 5-minute margin
+        assert tok.is_expired(margin_seconds=300) is True

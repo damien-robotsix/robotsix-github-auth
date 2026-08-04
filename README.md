@@ -123,8 +123,7 @@ class InstallationToken:
 
     @property
     def seconds_remaining(self) -> float: ...
-    @property
-    def is_expired(self) -> bool: ...
+    def is_expired(self, margin_seconds: float = 0.0) -> bool: ...
 ```
 
 ### `validate_scopes`

@@ -25,7 +25,6 @@ class InstallationToken:
         """Seconds until this token expires (may be negative if expired)."""
         return (self.expires_at - datetime.now(UTC)).total_seconds()
 
-    @property
-    def is_expired(self) -> bool:
-        """True when the token has already passed its expiry."""
-        return self.seconds_remaining < 0
+    def is_expired(self, margin_seconds: float = 0.0) -> bool:
+        """True when the token is expired, optionally within *margin_seconds*."""
+        return self.seconds_remaining < margin_seconds
