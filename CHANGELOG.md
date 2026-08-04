@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Upgrade transitive `cryptography` dependency from 49.0.0 to 50.0.0 (GHSA-g6cj-pr64-35w5)
 - Add `.robotsix-mill/config.yaml` with `languages: [python]` to declare the repo's language scope for robotsix-mill periodic agents.
 - Add single-flight request coalescing to `mint_installation_token` so that
   concurrent callers for the same `(installation_id, scopes)` share a single
