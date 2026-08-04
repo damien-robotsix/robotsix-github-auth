@@ -42,7 +42,7 @@ class _TokenCache:
             token = self._store.get(key)
             if token is None:
                 return None
-            if token.seconds_remaining < _REFRESH_MARGIN_SECONDS:
+            if token.is_expired(margin_seconds=_REFRESH_MARGIN_SECONDS):
                 return None
             return token
 
