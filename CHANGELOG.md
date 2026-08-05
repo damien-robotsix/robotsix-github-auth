@@ -1,6 +1,7 @@
 ## 0.0.0 (unreleased)
 
 - Add `SECURITY.md` with supported versions, vulnerability reporting process, and response expectations.
+- Enable ruff flake8-bandit (S) security rules in lint configuration
 - Enable mypy_baseline periodic agent to track type-safety regressions, matching every other Python repo in the fleet.
 - Enable `pin_bump` periodic task to keep git-pinned dependency SHAs current
 - `validate_scopes` now raises `ValueError` (instead of folding into `ScopeError`) when the *required* minimum level is not one of `read`/`write`/`admin` — a caller configuration error. Token-side unknown levels continue to fail closed as `ScopeError`.
