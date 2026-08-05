@@ -5,6 +5,7 @@ modules:
     paths:
       - README.md
       - CHANGELOG.md
+      - SECURITY.md
       - pyproject.toml
       - uv.lock
       - .gitignore
