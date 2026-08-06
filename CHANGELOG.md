@@ -1,5 +1,6 @@
 ## 0.0.0 (unreleased)
 
+- Add OpenSSF Scorecard workflow (`.github/workflows/scorecard.yml`) running on push to `main` and weekly, publishing results and uploading SARIF to code scanning.
 - Add `SECURITY.md` with supported versions, vulnerability reporting process, and response expectations.
 - Enable ruff flake8-bandit (S) security rules in lint configuration
 - Enable mypy_baseline periodic agent to track type-safety regressions, matching every other Python repo in the fleet.
