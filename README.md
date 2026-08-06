@@ -58,6 +58,15 @@ Repeated calls with the same parameters return the cached token without
 contacting GitHub.  Tokens are evicted when fewer than **5 minutes**
 remain before expiry — the next call will transparently re-mint.
 
+**Request coalescing.**  When multiple callers concurrently request a
+token for the same `(installation_id, scopes)` key and no valid cached
+token exists, only one upstream `POST /app/installations/{id}/access_tokens`
+call is made.  The first caller mints the token while others wait (per-key
+lock); once the mint completes, all waiters receive the same token.  If
+the mint fails, the lock is released and each waiter retries independently.
+Different installation IDs or scope-sets use separate locks and do not
+block each other.
+
 Callers that need to force a fresh token can clear the cache:
 
 ```python
