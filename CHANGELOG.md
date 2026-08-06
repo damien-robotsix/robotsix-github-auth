@@ -1,5 +1,9 @@
+<!-- towncrier release notes start -->
+
 ## 0.0.0 (unreleased)
 
+- Adopt towncrier to back the declared changelog-fragment convention: add `[tool.towncrier]` config in `pyproject.toml`, add a `changelog` CI job that fails PRs with no fragment (`towncrier check --compare-with origin/main`), update `changelog.d/README.md` and `docs/modules.yaml` to match extensionless fragment naming, and remove the dead `changelog_autofill` mill stub.
+- Adopt towncrier to back the declared changelog-fragment convention: add `[tool.towncrier]` config in `pyproject.toml`, add a `changelog` CI job that fails PRs with no fragment (`towncrier check --compare-with origin/main`), update `changelog.d/README.md` and `docs/modules.yaml` to match extensionless fragment naming, and remove the dead `changelog_autofill` mill stub.
 - Add `SECURITY.md` with supported versions, vulnerability reporting process, and response expectations.
 - Enable ruff flake8-bandit (S) security rules in lint configuration
 - Enable mypy_baseline periodic agent to track type-safety regressions, matching every other Python repo in the fleet.

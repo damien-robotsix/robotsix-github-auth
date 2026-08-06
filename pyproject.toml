@@ -25,6 +25,7 @@ dev = [
     "mypy>=1.14",
     "deptry>=0.23",
     "pytest-cov>=6",
+    "towncrier>=24",
 ]
 
 [build-system]
@@ -68,6 +69,33 @@ robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.
 [tool.deptry]
 known_first_party = ["robotsix_github_auth"]
 optional_dependencies_dev_groups = ["dev"]
+
+[tool.towncrier]
+package = "robotsix_github_auth"
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+name = "robotsix-github-auth"
+start_string = "<!-- towncrier release notes start -->"
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
 
 [tool.mypy]
 strict = true
