@@ -39,6 +39,7 @@ modules:
     paths:
       - src/robotsix_github_auth/**
       - tests/core/**
+      - changelog.d/**
       - changelog.d/*.md
 
   - id: tests
