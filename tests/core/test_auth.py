@@ -366,6 +366,7 @@ class TestMintInstallationToken:
 
         # Verify the request body was sent correctly
         request = httpx_mock.get_request()
+        assert request is not None
         body = json.loads(request.content)
         assert "permissions" in body
         assert body["permissions"] == {"contents": "read", "issues": "write"}
