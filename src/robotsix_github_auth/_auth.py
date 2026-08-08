@@ -1,8 +1,9 @@
-"""Core GitHub App authentication: JWT signing, installation resolution, token minting."""
+"""Core GitHub authentication: PAT mode, JWT signing, installation resolution, token minting."""
 
 from __future__ import annotations
 
 import atexit
+import os
 import threading
 import time
 from collections.abc import Mapping
@@ -16,6 +17,14 @@ from robotsix_http import RetryConfig, call_with_retry
 from robotsix_github_auth._cache import _freeze_scopes, _token_cache
 from robotsix_github_auth._exceptions import TokenMintError
 from robotsix_github_auth._models import InstallationToken
+
+# --- Environment variable names for auth-mode configuration ---
+_GITHUB_AUTH_MODE_ENV: str = "GITHUB_AUTH_MODE"
+_FORGE_TOKEN_ENV: str = "FORGE_TOKEN"  # noqa: S105
+_FORGE_PUSH_TOKEN_ENV: str = "FORGE_PUSH_TOKEN"  # noqa: S105
+_GITHUB_APP_ID_ENV: str = "GITHUB_APP_ID"
+_GITHUB_APP_PRIVATE_KEY_ENV: str = "GITHUB_APP_PRIVATE_KEY"
+_GITHUB_APP_INSTALLATION_ID_ENV: str = "GITHUB_APP_INSTALLATION_ID"
 
 _GITHUB_API_BASE: str = "https://api.github.com"
 _JWT_EXPIRY_SECONDS: int = 600
@@ -151,6 +160,137 @@ def _mint_token(
         token=token_str,
         expires_at=expires_at,
         permissions=data.get("permissions", {}),
+    )
+
+
+def github_token(
+    *,
+    pat: str | None = None,
+    app_id: str | None = None,
+    private_key: str | None = None,
+    installation_id: str | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+    scopes: Mapping[str, str] | None = None,
+    auth_mode: str | None = None,
+) -> str:
+    """Resolve a GitHub token using PAT or GitHub App authentication.
+
+    When *auth_mode* is ``"token"`` (or the ``GITHUB_AUTH_MODE`` env var
+    is set to ``"token"``), the token is read from *pat* (or the
+    ``FORGE_TOKEN`` environment variable).
+
+    When *auth_mode* is ``"app"`` (the default), the token is minted via
+    :func:`mint_installation_token` and its raw token string is returned.
+
+    Args:
+        pat: Personal access token (PAT mode).  Falls back to
+            ``FORGE_TOKEN`` environment variable.
+        app_id: GitHub App ID (App mode).  Falls back to
+            ``GITHUB_APP_ID`` environment variable.
+        private_key: App private key PEM (App mode).  Falls back to
+            ``GITHUB_APP_PRIVATE_KEY`` environment variable.
+        installation_id: App installation ID (App mode).  Falls back to
+            ``GITHUB_APP_INSTALLATION_ID`` environment variable.
+        owner: Repository owner for installation resolution (App mode).
+        repo: Repository name for installation resolution (App mode).
+        scopes: Permission narrowing for the installation token (App mode).
+        auth_mode: ``"token"`` or ``"app"``.  Defaults to
+            ``os.environ.get("GITHUB_AUTH_MODE", "app")``.
+
+    Returns:
+        A GitHub bearer token string.
+
+    Raises:
+        TokenMintError: When no token can be resolved.
+    """
+    resolved_mode = auth_mode or os.environ.get(_GITHUB_AUTH_MODE_ENV, "app")
+
+    if resolved_mode == "token":
+        token = pat or os.environ.get(_FORGE_TOKEN_ENV)
+        if not token:
+            raise TokenMintError(f"No PAT provided. Set {_FORGE_TOKEN_ENV} or pass ``pat=``.")
+        return token
+
+    if resolved_mode == "app":
+        inst_token = mint_installation_token(
+            app_id=app_id or os.environ.get(_GITHUB_APP_ID_ENV, ""),
+            private_key=private_key or os.environ.get(_GITHUB_APP_PRIVATE_KEY_ENV, ""),
+            installation_id=installation_id
+            or os.environ.get(_GITHUB_APP_INSTALLATION_ID_ENV)
+            or None,
+            owner=owner,
+            repo=repo,
+            scopes=scopes,
+        )
+        return inst_token.token
+
+    raise TokenMintError(
+        f"Unknown auth mode '{resolved_mode}'. Set {_GITHUB_AUTH_MODE_ENV} to 'token' or 'app'."
+    )
+
+
+def github_push_token(
+    *,
+    pat: str | None = None,
+    push_token: str | None = None,
+    app_id: str | None = None,
+    private_key: str | None = None,
+    installation_id: str | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+    scopes: Mapping[str, str] | None = None,
+    auth_mode: str | None = None,
+) -> str:
+    """Resolve a GitHub push token.
+
+    In PAT mode, returns *push_token* (or ``FORGE_PUSH_TOKEN`` env var),
+    falling back to the primary PAT (from *pat* or ``FORGE_TOKEN``).
+
+    In App mode, delegates to :func:`github_token`.
+
+    Args:
+        pat: Primary personal access token, used as fallback when
+            *push_token* is not set (PAT mode).
+        push_token: Push-specific PAT (PAT mode).  Falls back to
+            ``FORGE_PUSH_TOKEN`` environment variable.
+        app_id: GitHub App ID (App mode).
+        private_key: App private key PEM (App mode).
+        installation_id: App installation ID (App mode).
+        owner: Repository owner for installation resolution (App mode).
+        repo: Repository name for installation resolution (App mode).
+        scopes: Permission narrowing for the installation token (App mode).
+        auth_mode: ``"token"`` or ``"app"``.  Defaults to
+            ``os.environ.get("GITHUB_AUTH_MODE", "app")``.
+
+    Returns:
+        A GitHub bearer token string suitable for push operations.
+
+    Raises:
+        TokenMintError: When no token can be resolved.
+    """
+    resolved_mode = auth_mode or os.environ.get(_GITHUB_AUTH_MODE_ENV, "app")
+
+    if resolved_mode == "token":
+        token = push_token or os.environ.get(_FORGE_PUSH_TOKEN_ENV)
+        if not token:
+            token = pat or os.environ.get(_FORGE_TOKEN_ENV)
+        if not token:
+            raise TokenMintError(
+                f"No push token provided. Set {_FORGE_PUSH_TOKEN_ENV} or {_FORGE_TOKEN_ENV}."
+            )
+        return token
+
+    # App mode: same as github_token (no separate push token concept for Apps)
+    return github_token(
+        pat=pat,
+        app_id=app_id,
+        private_key=private_key,
+        installation_id=installation_id,
+        owner=owner,
+        repo=repo,
+        scopes=scopes,
+        auth_mode=resolved_mode,
     )
 
 
