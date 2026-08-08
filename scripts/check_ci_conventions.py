@@ -136,8 +136,7 @@ def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
         ):
             first_uses = expanded_steps[0].get("uses", "<none>") if expanded_steps else "<none>"
             errors.append(
-                f"[{job_name}] First step is not step-security/harden-runner "
-                f"(found: {first_uses})."
+                f"[{job_name}] First step is not step-security/harden-runner (found: {first_uses})."
             )
 
         # 2. Every actions/checkout step MUST have persist-credentials: false.

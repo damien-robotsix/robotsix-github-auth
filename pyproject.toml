@@ -75,6 +75,7 @@ python_version = "3.14"
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 disallow_untyped_defs = false
+disallow_any_generics = false
 
 [[tool.mypy.overrides]]
 module = ["robotsix_http", "robotsix_http.*"]
