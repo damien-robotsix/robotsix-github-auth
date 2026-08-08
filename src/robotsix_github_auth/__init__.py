@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from robotsix_github_auth._auth import mint_installation_token
+from robotsix_github_auth._auth import github_push_token, github_token, mint_installation_token
 from robotsix_github_auth._cache import _token_cache
 from robotsix_github_auth._exceptions import GithubAuthError, ScopeError, TokenMintError
 from robotsix_github_auth._models import InstallationToken
@@ -25,6 +25,8 @@ __all__ = [
     "ScopeError",
     "TokenMintError",
     "clear_token_cache",
+    "github_push_token",
+    "github_token",
     "invalidate_token_cache",
     "mint_installation_token",
     "validate_scopes",
