@@ -1,3 +1,14 @@
+## 0.2.0 (2026-08-09)
+
+### Features
+
+- Add unified `github_token()` and `github_push_token()` functions that select between PAT (`FORGE_TOKEN`) and GitHub App authentication modes based on `GITHUB_AUTH_MODE` configuration. (20260807T152356Z-robotsix-github-auth-add-pat-auth-mode-s-b7e6)
+
+### Misc
+
+- 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
+
+
 ## 0.0.0 (unreleased)
 
 - Add OpenSSF Scorecard workflow (`.github/workflows/scorecard.yml`) running on push to `main` and weekly, publishing results and uploading SARIF to code scanning.
