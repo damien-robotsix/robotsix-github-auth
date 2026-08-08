@@ -78,6 +78,10 @@ disallow_untyped_defs = false
 disallow_any_generics = false
 
 [[tool.mypy.overrides]]
+module = ["yaml"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = ["robotsix_http", "robotsix_http.*"]
 ignore_missing_imports = true
 
