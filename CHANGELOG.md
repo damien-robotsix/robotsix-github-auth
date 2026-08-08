@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.3.0](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.2.0...v0.3.0) (2026-08-08)
+
+
+### Features
+
+* **release:** adopt release-please, retire towncrier ([#67](https://github.com/damien-robotsix/robotsix-github-auth/issues/67)) ([ec34f2e](https://github.com/damien-robotsix/robotsix-github-auth/commit/ec34f2eaabcc9a8c7f9f9558270edbdf24f843b3))
+
 ## 0.0.0 (unreleased)
 
 - Add OpenSSF Scorecard workflow (`.github/workflows/scorecard.yml`) running on push to `main` and weekly, publishing results and uploading SARIF to code scanning.
