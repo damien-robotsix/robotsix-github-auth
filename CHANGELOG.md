@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.3.1](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.3.0...v0.3.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **release:** don't fail lock-sync when the release branch is gone ([#69](https://github.com/damien-robotsix/robotsix-github-auth/issues/69)) ([35b84a0](https://github.com/damien-robotsix/robotsix-github-auth/commit/35b84a004be2d3e7c188888e14dee56d50e194d2))
+
 ## [0.3.0](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.2.0...v0.3.0) (2026-08-08)
 
 
