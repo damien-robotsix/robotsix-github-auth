@@ -181,7 +181,7 @@ def github_token(
     ``FORGE_TOKEN`` environment variable).
 
     When *auth_mode* is ``"app"`` (the default), the token is minted via
-    :func:`mint_installation_token` and its raw token string is returned.
+    :func:`_resolve_token` and its raw token string is returned.
 
     Args:
         pat: Personal access token (PAT mode).  Falls back to
@@ -213,15 +213,13 @@ def github_token(
         return token
 
     if resolved_mode == "app":
-        inst_token = mint_installation_token(
-            app_id=app_id or os.environ.get(_GITHUB_APP_ID_ENV, ""),
-            private_key=private_key or os.environ.get(_GITHUB_APP_PRIVATE_KEY_ENV, ""),
-            installation_id=installation_id
-            or os.environ.get(_GITHUB_APP_INSTALLATION_ID_ENV)
-            or None,
-            owner=owner,
-            repo=repo,
-            scopes=scopes,
+        inst_token = _resolve_token(
+            app_id or os.environ.get(_GITHUB_APP_ID_ENV, ""),
+            private_key or os.environ.get(_GITHUB_APP_PRIVATE_KEY_ENV, ""),
+            owner,
+            repo,
+            scopes,
+            install_id=installation_id or os.environ.get(_GITHUB_APP_INSTALLATION_ID_ENV) or None,
         )
         return inst_token.token
 
@@ -302,6 +300,58 @@ def _close_github_client() -> None:
 atexit.register(_close_github_client)
 
 
+def _resolve_token(
+    app_id: str,
+    private_key: str,
+    owner: str | None,
+    repo: str | None,
+    scopes: Mapping[str, str] | None,
+    *,
+    install_id: str | None = None,
+) -> InstallationToken:
+    """Mint (or fetch from cache) a GitHub App installation token.
+
+    Encapsulates the shared App-mode mint flow: build a JWT, resolve the
+    installation ID from ``owner``/``repo`` when no explicit ID is given,
+    check the in-process token cache, and single-flight the mint under a
+    per-key lock.
+    """
+    if install_id is None and not (owner and repo):
+        raise TokenMintError("Either installation_id or both owner and repo must be provided.")
+
+    # Try the cache when we know the installation_id
+    if install_id is not None:
+        cached = _token_cache.get(install_id, scopes)
+        if cached is not None:
+            return cached
+
+    jwt_token = _build_app_jwt(app_id, private_key)
+
+    if install_id is not None:
+        resolved_id = install_id
+    else:
+        if owner is None or repo is None:
+            raise TokenMintError("owner and repo must be provided when installation_id is omitted")
+        resolved_id = _resolve_installation_id(jwt_token, owner, repo)
+        cached = _token_cache.get(resolved_id, scopes)
+        if cached is not None:
+            return cached
+
+    key: _MintKey = (resolved_id, _freeze_scopes(scopes))
+    mint_lock = _acquire_mint_lock(key)
+    try:
+        # Double-checked locking: another thread may have populated
+        # the cache while we waited for the per-key lock.
+        cached = _token_cache.get(resolved_id, scopes)
+        if cached is not None:
+            return cached
+        token = _mint_token(jwt_token, resolved_id, scopes)
+        _token_cache.put(resolved_id, scopes, token)
+        return token
+    finally:
+        mint_lock.release()
+
+
 def mint_installation_token(
     app_id: str,
     private_key: str,
@@ -332,37 +382,11 @@ def mint_installation_token(
     Raises:
         TokenMintError: When the token cannot be minted.
     """
-    if installation_id is None and not (owner and repo):
-        raise TokenMintError("Either installation_id or both owner and repo must be provided.")
-
-    # Try the cache when we know the installation_id
-    if installation_id is not None:
-        cached = _token_cache.get(installation_id, scopes)
-        if cached is not None:
-            return cached
-
-    jwt_token = _build_app_jwt(app_id, private_key)
-
-    if installation_id is not None:
-        resolved_id = installation_id
-    else:
-        if owner is None or repo is None:
-            raise TokenMintError("owner and repo must be provided when installation_id is omitted")
-        resolved_id = _resolve_installation_id(jwt_token, owner, repo)
-        cached = _token_cache.get(resolved_id, scopes)
-        if cached is not None:
-            return cached
-
-    key: _MintKey = (resolved_id, _freeze_scopes(scopes))
-    mint_lock = _acquire_mint_lock(key)
-    try:
-        # Double-checked locking: another thread may have populated
-        # the cache while we waited for the per-key lock.
-        cached = _token_cache.get(resolved_id, scopes)
-        if cached is not None:
-            return cached
-        token = _mint_token(jwt_token, resolved_id, scopes)
-        _token_cache.put(resolved_id, scopes, token)
-        return token
-    finally:
-        mint_lock.release()
+    return _resolve_token(
+        app_id,
+        private_key,
+        owner,
+        repo,
+        scopes,
+        install_id=installation_id,
+    )
