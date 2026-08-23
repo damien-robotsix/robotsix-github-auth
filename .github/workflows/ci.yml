@@ -17,6 +17,26 @@ env:
   UV_MALWARE_CHECK: "1"
 
 jobs:
+  python-ci:
+    name: Python CI
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
+    with:
+      python-version: "3.14"
+      install-extras: "dev"
+      cov-package: "robotsix_github_auth"
+      coverage-threshold: "80"
+      job_split: true
+    permissions:
+      contents: read
+
+  python-security:
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-security.yml@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
+    with:
+      python-version: "3.14"
+      install-extras: "dev"
+    permissions:
+      contents: read
+
   lockfile-check:
     runs-on: ubuntu-latest
     steps:
@@ -26,50 +46,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          enable-cache: "false"
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
       - run: uv lock --check
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - run: uv sync --frozen --extra dev
-      - run: uv run ruff check src/ tests/
-      - run: uv run ruff format --check src/ tests/
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - run: uv sync --frozen --extra dev
-      - run: uv run mypy src/ tests/
-
-  deptry:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-      - run: uv sync --frozen --extra dev
-      - run: uv run deptry .
 
   modules:
     runs-on: ubuntu-latest
@@ -80,39 +58,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        with:
+          python-version: "3.14"
       - run: uv sync --frozen --extra dev
       - run: uv run --frozen robotsix-modules check-registration docs/modules.yaml --root .
-
-  audit:
-    runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-    steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          enable-cache: "false"
-      - run: uv sync --frozen
-      - name: Run uv audit
-        id: audit
-        continue-on-error: true
-        run: uv audit --frozen --output-format sarif > uv-audit.sarif
-      - name: Upload SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@4187e74d05793876e9989daffde9c3e66b4acd07  # v3
-        with:
-          sarif_file: uv-audit.sarif
-      - name: Fail on vulnerabilities
-        if: steps.audit.outcome == 'failure'
-        run: |
-          echo "::error::Dependency vulnerabilities detected. See SARIF report for details."
-          exit 1
 
   codeql:
     runs-on: ubuntu-latest
@@ -131,24 +81,6 @@ jobs:
           build-mode: none
           queries: security-and-quality
       - uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07  # v3
-
-  test:
-    strategy:
-      matrix:
-        python-version: ["3.14"]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: uv sync --frozen --extra dev
-      - run: uv run pytest tests/ -v --cov --cov-report=term --cov-fail-under=80
 
   zizmor:
     runs-on: ubuntu-latest

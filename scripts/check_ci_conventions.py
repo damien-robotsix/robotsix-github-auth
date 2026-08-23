@@ -122,6 +122,10 @@ def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
 
     for job_name, job_def in jobs.items():
         steps = job_def.get("steps", [])
+        # Reusable workflow calls (top-level ``uses:``) have no steps
+        # — skip them; their conventions are enforced in the shared repo.
+        if "uses" in job_def and not steps:
+            continue
         if not steps:
             errors.append(f"[{job_name}] No steps defined.")
             continue
