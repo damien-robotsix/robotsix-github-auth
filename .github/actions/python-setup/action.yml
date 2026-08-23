@@ -1,0 +1,18 @@
+name: Python Setup
+description: Set up Python with uv
+
+inputs:
+  python-version:
+    required: false
+    default: "3.14"
+  enable-cache:
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+      with:
+        enable-cache: ${{ inputs.enable-cache }}
+        python-version: ${{ inputs.python-version }}
