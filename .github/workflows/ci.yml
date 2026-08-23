@@ -17,18 +17,6 @@ env:
   UV_MALWARE_CHECK: "1"
 
 jobs:
-  python-ci:
-    name: Python CI
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-ci.yml@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
-    with:
-      python-version: "3.14"
-      install-extras: "dev"
-      cov-package: "robotsix_github_auth"
-      coverage-threshold: "80"
-      job_split: true
-    permissions:
-      contents: read
-
   python-security:
     uses: damien-robotsix/robotsix-github-workflows/.github/workflows/python-security.yml@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
     with:
@@ -36,6 +24,103 @@ jobs:
       install-extras: "dev"
     permissions:
       contents: read
+
+  lint:
+    name: Python CI / Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
+        with:
+          egress-policy: audit
+      - uses: damien-robotsix/robotsix-github-workflows/.github/actions/python-setup@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
+        with:
+          python-version: "3.14"
+          uv-version: "0.8.15"
+          install-extras: "dev"
+      - name: deptry (dependency hygiene)
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: uv run --with deptry deptry .
+      - name: Dependency audit (CVE scan)
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: |
+          if uv audit --help >/dev/null 2>&1; then
+            uv audit --frozen --preview
+          else
+            uv export --frozen --no-hashes | grep -v '^-e \.' | uv run --with pip-audit pip-audit -r /dev/stdin
+          fi
+      - name: Ruff (lint + format check)
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check --diff .
+
+  typecheck:
+    name: Python CI / Type Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
+        with:
+          egress-policy: audit
+      - uses: damien-robotsix/robotsix-github-workflows/.github/actions/python-setup@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
+        with:
+          python-version: "3.14"
+          uv-version: "0.8.15"
+          install-extras: "dev"
+      - name: Mypy (static type check)
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: uv run mypy src/ --strict
+      - name: Bandit (security SAST)
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: uv run --with 'bandit[toml]' bandit -c pyproject.toml -r src/ --severity-level medium
+
+  test:
+    name: Python CI / Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
+        with:
+          egress-policy: audit
+      - uses: damien-robotsix/robotsix-github-workflows/.github/actions/python-setup@fb55ad2ad906d1628c5e2a8eb6e72e67ee4e0f62  # main
+        with:
+          python-version: "3.14"
+          uv-version: "0.8.15"
+          install-extras: "dev"
+      - name: Enforce coverage floor (hard minimum 80)
+        run: |
+          if [ "80" -lt 80 ]; then
+            echo "::error::coverage-threshold=80 is below the fleet-wide hard minimum of 80."
+            exit 1
+          fi
+      - name: Run tests
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: |
+          uv run --with pytest-xdist --with pytest-cov pytest tests/ -n auto --dist loadscope -x -m "not docker" --tb=long --cov="robotsix_github_auth" --cov-fail-under="80" --cov-report=term-missing --cov-report=xml:coverage.xml
+      - name: Combine coverage data
+        env:
+          UV_PROJECT_ENVIRONMENT: system
+        run: uv run --with coverage coverage combine || true
+      - name: Assert coverage database exists
+        run: test -f .coverage
+      - name: Upload coverage data
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: coverage-data
+          path: |
+            coverage.xml
+            .coverage
+          if-no-files-found: error
 
   lockfile-check:
     runs-on: ubuntu-latest
