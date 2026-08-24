@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+
 from robotsix_github_auth._auth import github_push_token, github_token, mint_installation_token
 from robotsix_github_auth._cache import _token_cache
 from robotsix_github_auth._exceptions import GithubAuthError, ScopeError, TokenMintError
 from robotsix_github_auth._models import InstallationToken
 from robotsix_github_auth._scopes import validate_scopes
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def invalidate_token_cache(installation_id: str) -> None:

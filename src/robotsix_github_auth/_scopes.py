@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
 from robotsix_github_auth._exceptions import ScopeError
+
+logger = logging.getLogger(__name__)
 
 # Permission levels in ascending order: read < write < admin
 _LEVELS: dict[str, int] = {"read": 0, "write": 1, "admin": 2}

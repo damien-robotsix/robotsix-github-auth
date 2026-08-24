@@ -7,12 +7,15 @@ their remaining lifetime drops below ``REFRESH_MARGIN_SECONDS`` (5 min).
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from robotsix_github_auth._models import InstallationToken
+
+logger = logging.getLogger(__name__)
 
 _REFRESH_MARGIN_SECONDS: float = 300.0
 
@@ -56,6 +59,7 @@ class _TokenCache:
         key = (installation_id, _freeze_scopes(scopes))
         with self._lock:
             self._store[key] = token
+        logger.debug("token cached installation=%s expires_at=%s", installation_id, token.expires_at.isoformat())
 
     def invalidate(self, installation_id: str) -> None:
         """Remove all cached tokens for the given installation."""

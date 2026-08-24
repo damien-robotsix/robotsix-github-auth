@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import atexit
+import logging
 import os
 import threading
 import time
@@ -17,6 +18,8 @@ from robotsix_http import RetryConfig, call_with_retry
 from robotsix_github_auth._cache import _freeze_scopes, _token_cache
 from robotsix_github_auth._exceptions import TokenMintError
 from robotsix_github_auth._models import InstallationToken
+
+logger = logging.getLogger(__name__)
 
 # --- Environment variable names for auth-mode configuration ---
 _GITHUB_AUTH_MODE_ENV: str = "GITHUB_AUTH_MODE"
@@ -108,6 +111,7 @@ def _resolve_installation_id(
     installation_id: str | None = str(data.get("id", "")) or None
     if not installation_id:
         raise TokenMintError(f"No installation found for {owner}/{repo}")
+    logger.debug("resolved installation=%s for %s/%s", installation_id, owner, repo)
     return installation_id
 
 
@@ -126,6 +130,11 @@ def _mint_token(
         "Authorization": f"Bearer {jwt_token}",
         "Accept": "application/vnd.github+json",
     }
+    logger.debug(
+        "minting installation token for installation=%s scopes=%s",
+        installation_id,
+        sorted((scopes or {}).keys()),
+    )
     try:
         resp = call_with_retry(
             lambda: _GITHUB_CLIENT.post(url, headers=headers, json=body),
@@ -156,11 +165,17 @@ def _mint_token(
             f"Malformed token response for installation {installation_id}: "
             f"missing or invalid field ({exc})"
         ) from exc
-    return InstallationToken(
+    inst_token = InstallationToken(
         token=token_str,
         expires_at=expires_at,
         permissions=data.get("permissions", {}),
     )
+    logger.debug(
+        "minted installation token for installation=%s expires_at=%s",
+        installation_id,
+        expires_at.isoformat(),
+    )
+    return inst_token
 
 
 def github_token(
@@ -323,6 +338,7 @@ def _resolve_token(
     if install_id is not None:
         cached = _token_cache.get(install_id, scopes)
         if cached is not None:
+            logger.debug("token cache hit installation=%s", install_id)
             return cached
 
     jwt_token = _build_app_jwt(app_id, private_key)
@@ -335,6 +351,7 @@ def _resolve_token(
         resolved_id = _resolve_installation_id(jwt_token, owner, repo)
         cached = _token_cache.get(resolved_id, scopes)
         if cached is not None:
+            logger.debug("token cache hit installation=%s", resolved_id)
             return cached
 
     key: _MintKey = (resolved_id, _freeze_scopes(scopes))
@@ -344,7 +361,9 @@ def _resolve_token(
         # the cache while we waited for the per-key lock.
         cached = _token_cache.get(resolved_id, scopes)
         if cached is not None:
+            logger.debug("token cache hit (after lock) installation=%s", resolved_id)
             return cached
+        logger.debug("cache miss, minting installation=%s", resolved_id)
         token = _mint_token(jwt_token, resolved_id, scopes)
         _token_cache.put(resolved_id, scopes, token)
         return token
