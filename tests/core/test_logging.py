@@ -39,9 +39,9 @@ class TestDiagnosticLogging:
 
         # At least one record should mention the installation id
         messages = [r.message for r in debug_records]
-        assert any("42" in msg for msg in messages), (
-            f"No DEBUG record mentions installation 42: {messages}"
-        )
+        assert (
+            any("42" in msg for msg in messages)
+        ), f"No DEBUG record mentions installation 42: {messages}"
 
         # No token value may appear in any emitted record
         all_messages = " ".join(messages)
