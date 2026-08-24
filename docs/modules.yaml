@@ -16,7 +16,6 @@ modules:
   - id: ci
     description: CI workflow definitions
     paths:
-      - .github/actions/**
       - .github/workflows/**
       - .github/workflows/release-please.yml
       - docs/ci/**
