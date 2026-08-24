@@ -43,9 +43,9 @@ class TestDiagnosticLogging:
 
         # At least one record should mention the installation id
         messages = [r.message for r in debug_records]
-        assert any(
-            "42" in msg for msg in messages
-        ), f"No DEBUG record mentions installation 42: {messages}"
+        assert any("42" in msg for msg in messages), (
+            f"No DEBUG record mentions installation 42: {messages}"
+        )
 
         # No token value may appear in any emitted record
         all_messages = " ".join(messages)
@@ -82,9 +82,9 @@ class TestDiagnosticLogging:
 
         debug_records = [r for r in caplog.records if r.levelno == logging.DEBUG]
         messages = [r.message for r in debug_records]
-        assert any(
-            "cache hit" in msg for msg in messages
-        ), f"Expected a cache-hit DEBUG record, got: {messages}"
+        assert any("cache hit" in msg for msg in messages), (
+            f"Expected a cache-hit DEBUG record, got: {messages}"
+        )
 
         # No token value may appear in any emitted record (including cache-hit)
         all_messages = " ".join(messages)
