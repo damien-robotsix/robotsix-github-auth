@@ -59,7 +59,11 @@ class _TokenCache:
         key = (installation_id, _freeze_scopes(scopes))
         with self._lock:
             self._store[key] = token
-        logger.debug("token cached installation=%s expires_at=%s", installation_id, token.expires_at.isoformat())
+        logger.debug(
+            "token cached installation=%s expires_at=%s",
+            installation_id,
+            token.expires_at.isoformat(),
+        )
 
     def invalidate(self, installation_id: str) -> None:
         """Remove all cached tokens for the given installation."""
