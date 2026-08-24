@@ -100,6 +100,19 @@ def _find_repo_root(path: str) -> Path:
     return Path(path).resolve().parent.parent.parent
 
 
+# Reference pattern for the shared python-setup composite action from
+# robotsix-github-workflows.  Jobs that use this action carry checkout,
+# setup-python, setup-uv, and uv sync inside the composite — convention
+# checks that require astral-sh/setup-uv are suppressed for those jobs
+# because the checker cannot expand remote composite actions.
+_SHARED_PYTHON_SETUP = "damien-robotsix/robotsix-github-workflows/.github/actions/python-setup"
+
+
+def _has_shared_python_setup(steps: list[dict[str, Any]]) -> bool:
+    """Return True if any step references the shared python-setup composite action."""
+    return any(s.get("uses", "").startswith(_SHARED_PYTHON_SETUP) for s in steps)
+
+
 def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
     """Validate *path* (a GitHub Actions workflow YAML) and return a list of issues."""
     errors: list[str] = []
@@ -122,6 +135,10 @@ def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
 
     for job_name, job_def in jobs.items():
         steps = job_def.get("steps", [])
+        # Reusable workflow calls (top-level ``uses:``) have no steps
+        # — skip them; their conventions are enforced in the shared repo.
+        if "uses" in job_def and not steps:
+            continue
         if not steps:
             errors.append(f"[{job_name}] No steps defined.")
             continue
@@ -146,8 +163,13 @@ def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
         )
 
         # 3. Every job that runs ``uv`` MUST have astral-sh/setup-uv.
-        if _runs_uv_command(expanded_steps) and not _has_step_using(
-            expanded_steps, "astral-sh/setup-uv"
+        #    Skip this check when the job uses the shared python-setup
+        #    composite action, which bundles setup-uv internally — the
+        #    checker cannot expand remote composite actions.
+        if (
+            _runs_uv_command(expanded_steps)
+            and not _has_step_using(expanded_steps, "astral-sh/setup-uv")
+            and not _has_shared_python_setup(steps)
         ):
             errors.append(f"[{job_name}] Runs uv/uvx but has no astral-sh/setup-uv step.")
 
