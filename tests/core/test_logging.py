@@ -17,7 +17,11 @@ class TestDiagnosticLogging:
         _token_cache.clear()
 
     def test_mint_emits_debug_record(
-        self, app_id: str, private_key: str, httpx_mock: HTTPXMock, caplog: pytest.LogCaptureFixture
+        self,
+        app_id: str,
+        private_key: str,
+        httpx_mock: HTTPXMock,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """A mint operation emits at least one DEBUG record with the installation id."""
         expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
@@ -39,8 +43,8 @@ class TestDiagnosticLogging:
 
         # At least one record should mention the installation id
         messages = [r.message for r in debug_records]
-        assert (
-            any("42" in msg for msg in messages)
+        assert any(
+            "42" in msg for msg in messages
         ), f"No DEBUG record mentions installation 42: {messages}"
 
         # No token value may appear in any emitted record
@@ -48,7 +52,11 @@ class TestDiagnosticLogging:
         assert "ghs_test123" not in all_messages, "Token string leaked into logs!"
 
     def test_cache_hit_emits_debug_record(
-        self, app_id: str, private_key: str, httpx_mock: HTTPXMock, caplog: pytest.LogCaptureFixture
+        self,
+        app_id: str,
+        private_key: str,
+        httpx_mock: HTTPXMock,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """A cache hit emits a DEBUG record indicating the hit."""
         expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
