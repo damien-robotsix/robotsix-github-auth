@@ -9,6 +9,14 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.0](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.3.1...v0.4.0) (2026-08-30)
+
+
+### Features
+
+* Remove orphaned .github/actions/python-setup/action.yml left from CI-fix cycle (20260824T141421Z-remove-orphaned-github-actions-python-se-1066) ([#79](https://github.com/damien-robotsix/robotsix-github-auth/issues/79)) ([8c92feb](https://github.com/damien-robotsix/robotsix-github-auth/commit/8c92feb2fcfbd94f1ead6b8e61934756bf159342))
+* robotsix-github-auth: Enable trace_review periodic workflow (20260828T164926Z-robotsix-github-auth-enable-trace-review-f8ff) ([#84](https://github.com/damien-robotsix/robotsix-github-auth/issues/84)) ([52df505](https://github.com/damien-robotsix/robotsix-github-auth/commit/52df505c7d686f5924f63d88f6ae64767f437dc7))
+
 ## [0.3.1](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.3.0...v0.3.1) (2026-08-09)
 
 
