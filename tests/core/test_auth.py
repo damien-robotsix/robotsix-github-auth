@@ -108,6 +108,35 @@ class TestResolveInstallationId:
         assert isinstance(excinfo.value, TokenMintError)
         assert excinfo.value.retry_after_seconds == 45
 
+    def test_rate_limit_without_retry_after_defaults(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A 429 lacking a Retry-After header must not crash and defaults to 60s."""
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            status_code=429,
+        )
+        with pytest.raises(RateLimitError) as excinfo:
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
+        assert isinstance(excinfo.value, TokenMintError)
+        assert excinfo.value.retry_after_seconds == 60
+
+    @pytest.mark.parametrize("status_code", [401, 403])
+    def test_other_error_statuses_stay_token_mint_error(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock, status_code: int
+    ) -> None:
+        """Non-429 error statuses must still raise a plain TokenMintError (no regression)."""
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            status_code=status_code,
+        )
+        with pytest.raises(TokenMintError, match=f"HTTP {status_code}") as excinfo:
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
+        # A generic failure must NOT be misclassified as a rate-limit error.
+        assert not isinstance(excinfo.value, RateLimitError)
+
     def test_raises_on_network_error(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
     ) -> None:
@@ -222,6 +251,49 @@ class TestMintInstallationToken:
         # RateLimitError must remain catchable as a TokenMintError.
         assert isinstance(excinfo.value, TokenMintError)
         assert excinfo.value.retry_after_seconds == 30
+
+    def test_mint_rate_limit_without_retry_after_defaults(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A mint 429 without Retry-After must not crash and defaults to 60s."""
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            status_code=429,
+        )
+        with pytest.raises(RateLimitError) as excinfo:
+            mint_installation_token(app_id, private_key, installation_id="42")
+        assert isinstance(excinfo.value, TokenMintError)
+        assert excinfo.value.retry_after_seconds == 60
+
+    def test_mint_rate_limit_caught_as_token_mint_error(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """Existing call sites catching TokenMintError still handle a rate limit."""
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            status_code=429,
+            headers={"Retry-After": "17"},
+        )
+        try:
+            mint_installation_token(app_id, private_key, installation_id="42")
+        except TokenMintError as exc:  # pragma: no branch - always raised here
+            assert isinstance(exc, RateLimitError)
+            assert exc.retry_after_seconds == 17
+        else:  # pragma: no cover - defensive
+            pytest.fail("expected a TokenMintError to be raised")
+
+    @pytest.mark.parametrize("status_code", [401, 403])
+    def test_mint_other_error_statuses_stay_token_mint_error(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock, status_code: int
+    ) -> None:
+        """Non-429 mint error statuses must still raise a plain TokenMintError."""
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            status_code=status_code,
+        )
+        with pytest.raises(TokenMintError, match=f"HTTP {status_code}") as excinfo:
+            mint_installation_token(app_id, private_key, installation_id="42")
+        assert not isinstance(excinfo.value, RateLimitError)
 
     def test_raises_when_missing_params(self, app_id: str, private_key: str) -> None:
         with pytest.raises(TokenMintError, match="installation_id or both owner and repo"):

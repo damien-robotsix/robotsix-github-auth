@@ -190,6 +190,26 @@ except RateLimitError as exc:
     # schedule a retry after exc.retry_after_seconds
 ```
 
+A simple backoff loop that honours `retry_after_seconds`:
+
+```python
+import time
+
+from robotsix_github_auth import RateLimitError, mint_installation_token
+
+def mint_with_backoff(app_id, private_key, *, installation_id, attempts=5):
+    for attempt in range(attempts):
+        try:
+            return mint_installation_token(
+                app_id, private_key, installation_id=installation_id
+            )
+        except RateLimitError as exc:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(exc.retry_after_seconds)
+    raise RuntimeError("unreachable")  # pragma: no cover
+```
+
 `retry_after_seconds` accepts an integer number of seconds or an HTTP-date in
 `Retry-After`, defaulting to **60** seconds when the header is missing or
 unparseable.
