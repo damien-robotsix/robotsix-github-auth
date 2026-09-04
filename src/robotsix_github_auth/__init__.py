@@ -6,7 +6,12 @@ import logging
 
 from robotsix_github_auth._auth import github_push_token, github_token, mint_installation_token
 from robotsix_github_auth._cache import _token_cache
-from robotsix_github_auth._exceptions import GithubAuthError, ScopeError, TokenMintError
+from robotsix_github_auth._exceptions import (
+    GithubAuthError,
+    RateLimitError,
+    ScopeError,
+    TokenMintError,
+)
 from robotsix_github_auth._models import InstallationToken
 from robotsix_github_auth._scopes import validate_scopes
 
@@ -26,6 +31,7 @@ def clear_token_cache() -> None:
 __all__ = [
     "GithubAuthError",
     "InstallationToken",
+    "RateLimitError",
     "ScopeError",
     "TokenMintError",
     "clear_token_cache",

@@ -12,8 +12,17 @@ import pytest
 from cryptography.hazmat.primitives import serialization
 from pytest_httpx import HTTPXMock
 
-from robotsix_github_auth import InstallationToken, TokenMintError, mint_installation_token
-from robotsix_github_auth._auth import _build_app_jwt, _resolve_installation_id
+from robotsix_github_auth import (
+    InstallationToken,
+    RateLimitError,
+    TokenMintError,
+    mint_installation_token,
+)
+from robotsix_github_auth._auth import (
+    _build_app_jwt,
+    _parse_retry_after,
+    _resolve_installation_id,
+)
 from robotsix_github_auth._cache import _token_cache
 
 
@@ -47,6 +56,23 @@ class TestBuildAppJwt:
             _build_app_jwt("123", "not-a-valid-key")
 
 
+class TestParseRetryAfter:
+    def test_missing_header_defaults_to_60(self) -> None:
+        assert _parse_retry_after(None) == 60
+
+    def test_integer_seconds(self) -> None:
+        assert _parse_retry_after("45") == 45
+
+    def test_http_date(self) -> None:
+        # Two minutes in the future as an HTTP-date.
+        future = (datetime.now(UTC) + timedelta(minutes=2)).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        parsed = _parse_retry_after(future)
+        assert 110 <= parsed <= 130
+
+    def test_unparseable_defaults_to_60(self) -> None:
+        assert _parse_retry_after("not-a-date") == 60
+
+
 class TestResolveInstallationId:
     def test_resolves_from_repo(self, app_id: str, private_key: str, httpx_mock: HTTPXMock) -> None:
         jwt_token = _build_app_jwt(app_id, private_key)
@@ -66,6 +92,21 @@ class TestResolveInstallationId:
         )
         with pytest.raises(TokenMintError, match="HTTP 404"):
             _resolve_installation_id(jwt_token, "octocat", "hello-world")
+
+    def test_raises_rate_limit_on_429(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            status_code=429,
+            headers={"Retry-After": "45"},
+        )
+        with pytest.raises(RateLimitError) as excinfo:
+            _resolve_installation_id(jwt_token, "octocat", "hello-world")
+        # RateLimitError must remain catchable as a TokenMintError.
+        assert isinstance(excinfo.value, TokenMintError)
+        assert excinfo.value.retry_after_seconds == 45
 
     def test_raises_on_network_error(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
@@ -167,6 +208,20 @@ class TestMintInstallationToken:
             repo="hello-world",
         )
         assert token.token == "ghs_mocktoken123"
+
+    def test_raises_rate_limit_on_mint_429(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            status_code=429,
+            headers={"Retry-After": "30"},
+        )
+        with pytest.raises(RateLimitError) as excinfo:
+            mint_installation_token(app_id, private_key, installation_id="42")
+        # RateLimitError must remain catchable as a TokenMintError.
+        assert isinstance(excinfo.value, TokenMintError)
+        assert excinfo.value.retry_after_seconds == 30
 
     def test_raises_when_missing_params(self, app_id: str, private_key: str) -> None:
         with pytest.raises(TokenMintError, match="installation_id or both owner and repo"):
