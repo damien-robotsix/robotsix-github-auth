@@ -9,6 +9,7 @@ import threading
 import time
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
@@ -16,7 +17,7 @@ import jwt
 from robotsix_http import RetryConfig, call_with_retry
 
 from robotsix_github_auth._cache import _freeze_scopes, _token_cache
-from robotsix_github_auth._exceptions import TokenMintError
+from robotsix_github_auth._exceptions import RateLimitError, TokenMintError
 from robotsix_github_auth._models import InstallationToken
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,25 @@ def _build_app_jwt(app_id: str, private_key: str) -> str:
         raise TokenMintError(f"Failed to sign App JWT: {exc}") from exc
 
 
+def _parse_retry_after(header_value: str | None) -> int:
+    """Parse the ``Retry-After`` header (seconds as int or HTTP-date string).
+
+    Defaults to 60 seconds when the header is missing or unparseable.
+    """
+    if not header_value:
+        return 60
+    try:
+        return int(header_value)  # Try as seconds
+    except ValueError:
+        # Try as HTTP-date; fall back to 60.
+        try:
+            dt = parsedate_to_datetime(header_value)
+            delta = dt - datetime.now(UTC)
+            return max(1, int(delta.total_seconds()))
+        except Exception:
+            return 60
+
+
 def _resolve_installation_id(
     jwt_token: str,
     owner: str,
@@ -100,6 +120,12 @@ def _resolve_installation_id(
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()
     except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 429:
+            retry_after = _parse_retry_after(exc.response.headers.get("Retry-After"))
+            raise RateLimitError(
+                f"Rate limited by GitHub API: {exc.response.status_code}",
+                retry_after_seconds=retry_after,
+            ) from exc
         raise TokenMintError(
             f"Failed to resolve installation for {owner}/{repo}: HTTP {exc.response.status_code}"
         ) from exc
@@ -143,6 +169,12 @@ def _mint_token(
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()
     except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 429:
+            retry_after = _parse_retry_after(exc.response.headers.get("Retry-After"))
+            raise RateLimitError(
+                f"Rate limited by GitHub API: {exc.response.status_code}",
+                retry_after_seconds=retry_after,
+            ) from exc
         raise TokenMintError(
             f"Failed to mint token for installation {installation_id}: "
             f"HTTP {exc.response.status_code}"
