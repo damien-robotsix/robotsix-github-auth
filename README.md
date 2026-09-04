@@ -119,7 +119,9 @@ def mint_installation_token(
 | `repo` | Repository name. Required when `installation_id` is `None`. |
 | `scopes` | Optional `{permission: level}` map to narrow the token. |
 
-Returns `InstallationToken`.  Raises `TokenMintError` on failure.
+Returns `InstallationToken`.  Raises `TokenMintError` on failure, or `RateLimitError`
+(respectively a subclass of `TokenMintError`) when GitHub returns a **429** rate-limit
+response.
 
 ### `InstallationToken`
 
@@ -168,7 +170,29 @@ Remove every cached token.
 |---|---|---|
 | `GithubAuthError` | `Exception` | Base for all library errors. |
 | `TokenMintError` | `GithubAuthError` | JWT signing failure, HTTP error, missing params. |
+| `RateLimitError` | `TokenMintError` | GitHub API 429 (rate limit) response. Has `.retry_after_seconds: int`. |
 | `ScopeError` | `GithubAuthError` | Token permissions insufficient. Has `.missing: list[str]`. |
+
+### Handling rate limits
+
+When GitHub returns a **429** rate-limit response, the library raises
+`RateLimitError` (a subclass of `TokenMintError`, so existing handlers that
+catch `TokenMintError` keep working).  It parses the `Retry-After` header into
+seconds so callers can implement backoff:
+
+```python
+from robotsix_github_auth import RateLimitError, mint_installation_token
+
+try:
+    token = mint_installation_token(app_id, private_key, installation_id="987654")
+except RateLimitError as exc:
+    print(f"Rate limited; retry in {exc.retry_after_seconds}s")
+    # schedule a retry after exc.retry_after_seconds
+```
+
+`retry_after_seconds` accepts an integer number of seconds or an HTTP-date in
+`Retry-After`, defaulting to **60** seconds when the header is missing or
+unparseable.
 
 ## Exceptions / Out-of-scope
 
