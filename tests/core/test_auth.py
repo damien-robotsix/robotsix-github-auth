@@ -23,6 +23,7 @@ from robotsix_github_auth._auth import (
     _build_app_jwt,
     _parse_retry_after,
     _resolve_installation_id,
+    _resolve_installation_id_for_repo,
 )
 from robotsix_github_auth._cache import _token_cache
 
@@ -176,6 +177,46 @@ class TestResolveInstallationId:
         )
         with pytest.raises(TokenMintError):
             _resolve_installation_id(jwt_token, "octocat", "hello-world")
+
+
+class TestResolveInstallationIdForRepo:
+    """The ``owner/repo``-string resolver used by the auto-resolution path."""
+
+    def test_resolves_from_owner_repo_string(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """The resolver returns the id from the installations API, not a config value."""
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/damien-robotsix/robotsix-chat-mobile/installation",
+            json={"id": 7777},
+            status_code=200,
+        )
+        iid = _resolve_installation_id_for_repo(jwt_token, "damien-robotsix/robotsix-chat-mobile")
+        assert iid == "7777"
+
+    def test_result_is_cached_within_ttl(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """Two resolutions within the TTL trigger only one installations-API lookup."""
+        jwt_token = _build_app_jwt(app_id, private_key)
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/damien-robotsix/robotsix-mill/installation",
+            json={"id": 5150},
+            status_code=200,
+        )
+        first = _resolve_installation_id_for_repo(jwt_token, "damien-robotsix/robotsix-mill")
+        second = _resolve_installation_id_for_repo(jwt_token, "damien-robotsix/robotsix-mill")
+        assert first == second == "5150"
+        resolution_requests = [
+            r for r in httpx_mock.get_requests() if str(r.url).endswith("/installation")
+        ]
+        assert len(resolution_requests) == 1
+
+    def test_invalid_repo_string_raises(self, app_id: str, private_key: str) -> None:
+        jwt_token = _build_app_jwt(app_id, private_key)
+        with pytest.raises(TokenMintError, match="expected 'owner/repo'"):
+            _resolve_installation_id_for_repo(jwt_token, "no-slash")
 
 
 class TestMintInstallationToken:
@@ -338,23 +379,24 @@ class TestMintInstallationToken:
     def test_caches_and_reuses_token_with_owner_repo(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
     ) -> None:
+        # Only ONE resolution response is registered: the installation-id
+        # cache means the second mint neither re-resolves nor re-mints.
         self._mock_installation_api(httpx_mock)
-        # Register a second installation-resolution response — the cache
-        # check happens after resolution, so the second call will still
-        # resolve before hitting the cache.
-        httpx_mock.add_response(
-            url="https://api.github.com/repos/octocat/hello-world/installation",
-            json={"id": 42},
-            status_code=200,
-        )
         # First call: resolve + mint
         token1 = mint_installation_token(app_id, private_key, owner="octocat", repo="hello-world")
         assert token1.token == "ghs_mocktoken123"
 
-        # Second call: resolves, then returns cached token (no mint call)
+        # Second call: installation-id cache hit -> returns cached token
+        # (no resolution and no mint HTTP call).
         token2 = mint_installation_token(app_id, private_key, owner="octocat", repo="hello-world")
         assert token2.token == "ghs_mocktoken123"
         assert token2 is token1  # Same object from cache
+
+        # Exactly one installation-resolution request was made.
+        resolution_requests = [
+            r for r in httpx_mock.get_requests() if str(r.url).endswith("/installation")
+        ]
+        assert len(resolution_requests) == 1
 
     def test_different_scopes_different_cache_entries(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
@@ -541,3 +583,108 @@ class TestMintInstallationToken:
         # The access_tokens endpoint was hit exactly once.
         mint_requests = [r for r in httpx_mock.get_requests() if "access_tokens" in str(r.url)]
         assert len(mint_requests) == 1
+
+    def test_stale_configured_id_is_overridden_by_resolution(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A deliberately-wrong configured id does not break minting.
+
+        When owner/repo are known the installation id is resolved per
+        repo and the configured value is ignored, so a stale id (e.g.
+        left over after an account-wide App reinstall) cannot 404 the
+        mint.
+        """
+        expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/damien-robotsix/robotsix-chat-mobile/installation",
+            json={"id": 42},  # freshly resolved id
+            status_code=200,
+        )
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={
+                "token": "ghs_fresh",
+                "expires_at": expires_at,
+                "permissions": {"contents": "read"},
+            },
+            status_code=201,
+        )
+        token = mint_installation_token(
+            app_id,
+            private_key,
+            installation_id="99",  # deliberately stale/wrong
+            owner="damien-robotsix",
+            repo="robotsix-chat-mobile",
+        )
+        assert token.token == "ghs_fresh"
+        # The stale id must never be used to mint.
+        stale_mint = [r for r in httpx_mock.get_requests() if "installations/99/" in str(r.url)]
+        assert not stale_mint
+
+    def test_mint_404_invalidates_cache_and_reresolves_once(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A 404 during mint drops the cached id and re-resolves exactly once."""
+        expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+        # First resolution -> now-stale id 42.
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/damien-robotsix/robotsix-chat-mobile/installation",
+            json={"id": 42},
+            status_code=200,
+        )
+        # Mint against the stale id 404s.
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            status_code=404,
+            json={"message": "Not Found"},
+        )
+        # Re-resolution -> fresh id 43.
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/damien-robotsix/robotsix-chat-mobile/installation",
+            json={"id": 43},
+            status_code=200,
+        )
+        # Mint against the fresh id succeeds.
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/43/access_tokens",
+            json={
+                "token": "ghs_after_reresolve",
+                "expires_at": expires_at,
+                "permissions": {"contents": "read"},
+            },
+            status_code=201,
+        )
+        token = mint_installation_token(
+            app_id,
+            private_key,
+            owner="damien-robotsix",
+            repo="robotsix-chat-mobile",
+        )
+        assert token.token == "ghs_after_reresolve"
+        # Exactly two resolutions: the initial one plus a single re-resolve.
+        resolution_requests = [
+            r for r in httpx_mock.get_requests() if str(r.url).endswith("/installation")
+        ]
+        assert len(resolution_requests) == 2
+
+    def test_mint_404_after_reresolve_raises_repo_not_installed(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A persistent 404 (even after re-resolving) surfaces RepoNotInstalledError."""
+        # Both resolutions return an id whose mint 404s.
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/gone/installation",
+            json={"id": 42},
+            status_code=200,
+            is_reusable=True,
+        )
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            status_code=404,
+            json={"message": "Not Found"},
+            is_reusable=True,
+        )
+        with pytest.raises(RepoNotInstalledError) as excinfo:
+            mint_installation_token(app_id, private_key, owner="octocat", repo="gone")
+        assert excinfo.value.owner == "octocat"
+        assert excinfo.value.repo == "gone"

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _REFRESH_MARGIN_SECONDS: float = 300.0
+
+# TTL for cached ``owner/repo`` -> installation-id resolutions.  Kept short
+# so a stale statically-configured value cannot linger, while still avoiding
+# an installations-API lookup on every single mint.
+_INSTALLATION_ID_TTL_SECONDS: float = 300.0
 
 
 def _freeze_scopes(scopes: Mapping[str, str] | None) -> tuple[tuple[str, str], ...]:
@@ -79,3 +85,55 @@ class _TokenCache:
 
 
 _token_cache = _TokenCache()
+
+
+class _InstallationIdCache:
+    """Thread-safe TTL cache mapping ``(owner, repo)`` -> installation id.
+
+    Each entry expires after ``ttl_seconds`` so a resolution that has
+    gone stale (for example after an account-wide App reinstall) is
+    re-fetched at most once per TTL window rather than on every mint.
+    """
+
+    def __init__(self, ttl_seconds: float = _INSTALLATION_ID_TTL_SECONDS) -> None:
+        self._lock = threading.Lock()
+        self._ttl = ttl_seconds
+        # key -> (installation_id, monotonic_expiry)
+        self._store: dict[tuple[str, str], tuple[str, float]] = {}
+
+    def get(self, owner: str, repo: str) -> str | None:
+        """Return a cached installation id if present and not yet expired."""
+        key = (owner, repo)
+        with self._lock:
+            entry = self._store.get(key)
+            if entry is None:
+                return None
+            installation_id, expiry = entry
+            if time.monotonic() >= expiry:
+                del self._store[key]
+                return None
+            return installation_id
+
+    def put(self, owner: str, repo: str, installation_id: str) -> None:
+        """Cache a resolved installation id for ``owner/repo``."""
+        with self._lock:
+            self._store[(owner, repo)] = (installation_id, time.monotonic() + self._ttl)
+        logger.debug(
+            "installation id cached %s/%s installation=%s",
+            owner,
+            repo,
+            installation_id,
+        )
+
+    def invalidate(self, owner: str, repo: str) -> None:
+        """Drop any cached installation id for ``owner/repo``."""
+        with self._lock:
+            self._store.pop((owner, repo), None)
+
+    def clear(self) -> None:
+        """Remove every cached entry."""
+        with self._lock:
+            self._store.clear()
+
+
+_installation_id_cache = _InstallationIdCache()

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
+
+from robotsix_github_auth._cache import _installation_id_cache, _token_cache
 
 # Test RSA private key (generated for testing only — NOT a real secret)
 TEST_PRIVATE_KEY: str = """-----BEGIN PRIVATE KEY-----
@@ -47,3 +51,18 @@ def private_key() -> str:
 def app_id() -> str:
     """Return a test GitHub App ID."""
     return TEST_APP_ID
+
+
+@pytest.fixture(autouse=True)
+def _clear_caches() -> Iterator[None]:
+    """Reset both in-process caches around every test.
+
+    The installation-id cache is keyed by ``owner/repo`` and would
+    otherwise leak resolved ids across tests (making an installations
+    lookup unexpectedly hit or miss depending on test order).
+    """
+    _token_cache.clear()
+    _installation_id_cache.clear()
+    yield
+    _token_cache.clear()
+    _installation_id_cache.clear()
