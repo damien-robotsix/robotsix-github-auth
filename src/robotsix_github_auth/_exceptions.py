@@ -33,31 +33,22 @@ class RateLimitError(TokenMintError):
 class RepoNotInstalledError(TokenMintError):
     """Raised when the GitHub App is not installed on the target repository.
 
-    Surfaced instead of an opaque HTTP 404 from the installation-lookup
-    endpoint so callers get a clear, actionable message.  A stale/static
-    installation id (for example after an account-wide App reinstall) is
-    a common cause, which is why the token-mint path resolves the
-    installation id per owner/repo instead of trusting a static value.
+    Surfaced when a token mint returns HTTP 404 — typically because the
+    cached installation id is stale (the App was reinstalled and the id
+    changed) and re-resolving the id still yields a 404.
 
     Inherits from :class:`TokenMintError` so existing callers that catch
-    ``TokenMintError`` continue to work.
+    ``TokenMintError`` keep working.
 
     Attributes:
-        owner: Repository owner (org or user).
-        repo: Repository name.
+        owner: Repository owner, when known.
+        repo: Repository name, when known.
     """
 
-    def __init__(self, owner: str, repo: str, message: str | None = None) -> None:
-        self.owner: str = owner
-        self.repo: str = repo
-        super().__init__(
-            message
-            or (
-                f"GitHub App is not installed on {owner}/{repo}. Install the App on "
-                f"this repository (its installation id may have changed after an "
-                f"account-wide reinstall)."
-            )
-        )
+    def __init__(self, message: str, owner: str | None = None, repo: str | None = None) -> None:
+        super().__init__(message)
+        self.owner: str | None = owner
+        self.repo: str | None = repo
 
 
 class ScopeError(GithubAuthError):
