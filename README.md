@@ -171,6 +171,7 @@ Remove every cached token.
 | `GithubAuthError` | `Exception` | Base for all library errors. |
 | `TokenMintError` | `GithubAuthError` | JWT signing failure, HTTP error, missing params. |
 | `RateLimitError` | `TokenMintError` | GitHub API 429 (rate limit) response. Has `.retry_after_seconds: int`. |
+| `RepoNotInstalledError` | `TokenMintError` | The App is not installed on the target repo (installation lookup returned 404). Has `.owner: str` and `.repo: str`. |
 | `ScopeError` | `GithubAuthError` | Token permissions insufficient. Has `.missing: list[str]`. |
 
 ### Handling rate limits

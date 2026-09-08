@@ -15,6 +15,7 @@ from pytest_httpx import HTTPXMock
 from robotsix_github_auth import (
     InstallationToken,
     RateLimitError,
+    RepoNotInstalledError,
     TokenMintError,
     mint_installation_token,
 )
@@ -90,8 +91,12 @@ class TestResolveInstallationId:
             url="https://api.github.com/repos/octocat/hello-world/installation",
             status_code=404,
         )
-        with pytest.raises(TokenMintError, match="HTTP 404"):
+        with pytest.raises(RepoNotInstalledError, match="not installed") as excinfo:
             _resolve_installation_id(jwt_token, "octocat", "hello-world")
+        # A "repo not installed" error must stay catchable as TokenMintError.
+        assert isinstance(excinfo.value, TokenMintError)
+        assert excinfo.value.owner == "octocat"
+        assert excinfo.value.repo == "hello-world"
 
     def test_raises_rate_limit_on_429(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
@@ -157,7 +162,7 @@ class TestResolveInstallationId:
             json={"account": {"login": "octocat"}},
             status_code=200,
         )
-        with pytest.raises(TokenMintError, match="No installation found"):
+        with pytest.raises(RepoNotInstalledError, match="not installed"):
             _resolve_installation_id(jwt_token, "octocat", "hello-world")
 
     def test_resolve_installation_non_json_response(
