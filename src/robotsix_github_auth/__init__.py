@@ -9,6 +9,7 @@ from robotsix_github_auth._cache import _token_cache
 from robotsix_github_auth._exceptions import (
     GithubAuthError,
     RateLimitError,
+    RepoNotInstalledError,
     ScopeError,
     TokenMintError,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "GithubAuthError",
     "InstallationToken",
     "RateLimitError",
+    "RepoNotInstalledError",
     "ScopeError",
     "TokenMintError",
     "clear_token_cache",

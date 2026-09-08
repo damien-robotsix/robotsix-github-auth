@@ -7,7 +7,12 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pytest_httpx import HTTPXMock
 
-from robotsix_github_auth import TokenMintError, github_push_token, github_token
+from robotsix_github_auth import (
+    RepoNotInstalledError,
+    TokenMintError,
+    github_push_token,
+    github_token,
+)
 from robotsix_github_auth._cache import _token_cache
 
 
@@ -174,6 +179,68 @@ class TestGithubTokenModeSelection:
             auth_mode="app",
         )
         assert token == "ghs_owner_repo"
+
+    def test_owner_repo_resolution_overrides_stale_static_id(
+        self,
+        app_id: str,
+        private_key: str,
+        httpx_mock: HTTPXMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A stale static installation id must not be used when owner/repo are known.
+
+        After an account-wide App reinstall the static id (env or param) is
+        stale; the mint path must resolve the id per repo instead of 404ing.
+        """
+        monkeypatch.setenv("GITHUB_APP_INSTALLATION_ID", "99")  # stale
+        expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            json={"id": 42},  # freshly resolved id
+            status_code=200,
+        )
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/42/access_tokens",
+            json={
+                "token": "ghs_resolved",
+                "expires_at": expires_at,
+                "permissions": {"contents": "read"},
+            },
+            status_code=201,
+        )
+        token = github_token(
+            app_id=app_id,
+            private_key=private_key,
+            installation_id="99",  # stale explicit id, must be ignored
+            owner="octocat",
+            repo="hello-world",
+            auth_mode="app",
+        )
+        assert token == "ghs_resolved"
+
+    def test_repo_not_installed_raises_clear_error(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A 404 from the installation lookup surfaces a clear typed error."""
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/not-installed/installation",
+            status_code=404,
+            json={"message": "Not Found"},
+        )
+        with pytest.raises(RepoNotInstalledError) as exc_info:
+            github_token(
+                app_id=app_id,
+                private_key=private_key,
+                owner="octocat",
+                repo="not-installed",
+                auth_mode="app",
+            )
+        err = exc_info.value
+        assert err.owner == "octocat"
+        assert err.repo == "not-installed"
+        assert "not installed on octocat/not-installed" in str(err)
+        # Typed error stays catchable as TokenMintError for existing callers.
+        assert isinstance(err, TokenMintError)
 
 
 class TestGithubPushToken:
