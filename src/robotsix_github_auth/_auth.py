@@ -16,7 +16,11 @@ import httpx
 import jwt
 from robotsix_http import RetryConfig, call_with_retry
 
-from robotsix_github_auth._cache import _freeze_scopes, _token_cache
+from robotsix_github_auth._cache import (
+    _freeze_scopes,
+    _installation_id_cache,
+    _token_cache,
+)
 from robotsix_github_auth._exceptions import (
     RateLimitError,
     RepoNotInstalledError,
@@ -105,6 +109,16 @@ def _parse_retry_after(header_value: str | None) -> int:
             return 60
 
 
+class _MintNotFoundError(TokenMintError):
+    """Internal: a mint request returned HTTP 404.
+
+    Signals that the installation id used for the mint is no longer
+    valid (for example the installation was recreated after an
+    account-wide App reinstall), so the caller can invalidate the
+    resolved-id cache and re-resolve once before failing.
+    """
+
+
 def _resolve_installation_id(
     jwt_token: str,
     owner: str,
@@ -147,6 +161,28 @@ def _resolve_installation_id(
     return installation_id
 
 
+def _resolve_installation_id_for_repo(jwt_token: str, repo_full_name: str) -> str:
+    """Resolve the *current* installation id covering ``owner/repo``.
+
+    ``repo_full_name`` is an ``"owner/repo"`` string.  The short-TTL
+    installation-id cache is consulted first; on a miss the GitHub App
+    installations API is queried (App-JWT authenticated) and the result
+    is cached.  Resolving per repo — rather than trusting a statically
+    configured installation id — is what prevents a stale id from
+    breaking token minting after an account-wide App reinstall.
+    """
+    owner, sep, repo = repo_full_name.partition("/")
+    if not owner or not sep or not repo:
+        raise TokenMintError(f"Invalid repository '{repo_full_name}'; expected 'owner/repo'.")
+    cached = _installation_id_cache.get(owner, repo)
+    if cached is not None:
+        logger.debug("installation id cache hit %s/%s installation=%s", owner, repo, cached)
+        return cached
+    installation_id = _resolve_installation_id(jwt_token, owner, repo)
+    _installation_id_cache.put(owner, repo, installation_id)
+    return installation_id
+
+
 def _mint_token(
     jwt_token: str,
     installation_id: str,
@@ -180,6 +216,13 @@ def _mint_token(
             raise RateLimitError(
                 f"Rate limited by GitHub API: {exc.response.status_code}",
                 retry_after_seconds=retry_after,
+            ) from exc
+        if exc.response.status_code == 404:
+            # The installation id is no longer valid (e.g. it was recreated
+            # after an account-wide App reinstall).  Signalled distinctly so
+            # the caller can invalidate the resolved-id cache and re-resolve.
+            raise _MintNotFoundError(
+                f"Failed to mint token for installation {installation_id}: HTTP 404"
             ) from exc
         raise TokenMintError(
             f"Failed to mint token for installation {installation_id}: "
@@ -353,47 +396,16 @@ def _close_github_client() -> None:
 atexit.register(_close_github_client)
 
 
-def _resolve_token(
-    app_id: str,
-    private_key: str,
-    owner: str | None,
-    repo: str | None,
+def _mint_with_cache(
+    jwt_token: str,
+    resolved_id: str,
     scopes: Mapping[str, str] | None,
-    *,
-    install_id: str | None = None,
 ) -> InstallationToken:
-    """Mint (or fetch from cache) a GitHub App installation token.
-
-    Encapsulates the shared App-mode mint flow: build a JWT, resolve the
-    installation ID from ``owner``/``repo`` when no explicit ID is given,
-    check the in-process token cache, and single-flight the mint under a
-    per-key lock.
-    """
-    if install_id is None and not (owner and repo):
-        raise TokenMintError("Either installation_id or both owner and repo must be provided.")
-
-    # When owner/repo are known we resolve the installation id per repo
-    # (see below) so a stale/static installation id cannot cause a 404
-    # after an account-wide App reinstall.  Only fall back to the static
-    # id — and its cache short-circuit — when no owner/repo is available.
-    if not (owner and repo) and install_id is not None:
-        cached = _token_cache.get(install_id, scopes)
-        if cached is not None:
-            logger.debug("token cache hit installation=%s", install_id)
-            return cached
-
-    jwt_token = _build_app_jwt(app_id, private_key)
-
-    if owner and repo:
-        resolved_id = _resolve_installation_id(jwt_token, owner, repo)
-        cached = _token_cache.get(resolved_id, scopes)
-        if cached is not None:
-            logger.debug("token cache hit installation=%s", resolved_id)
-            return cached
-    elif install_id is not None:
-        resolved_id = install_id
-    else:
-        raise TokenMintError("owner and repo must be provided when installation_id is omitted")
+    """Return a cached token for ``resolved_id`` or single-flight the mint."""
+    cached = _token_cache.get(resolved_id, scopes)
+    if cached is not None:
+        logger.debug("token cache hit installation=%s", resolved_id)
+        return cached
 
     key: _MintKey = (resolved_id, _freeze_scopes(scopes))
     mint_lock = _acquire_mint_lock(key)
@@ -410,6 +422,79 @@ def _resolve_token(
         return token
     finally:
         mint_lock.release()
+
+
+def _resolve_token(
+    app_id: str,
+    private_key: str,
+    owner: str | None,
+    repo: str | None,
+    scopes: Mapping[str, str] | None,
+    *,
+    install_id: str | None = None,
+) -> InstallationToken:
+    """Mint (or fetch from cache) a GitHub App installation token.
+
+    Encapsulates the shared App-mode mint flow: build a JWT, resolve the
+    installation ID from ``owner``/``repo`` when possible, check the
+    in-process token cache, and single-flight the mint under a per-key
+    lock.
+
+    When ``owner``/``repo`` are known the installation id is resolved
+    per repo (via a short-TTL cache) so a stale/static installation id
+    cannot cause a 404 after an account-wide App reinstall.  The
+    configured ``install_id`` is used only as a last-resort fallback when
+    the App-JWT installations lookup is unavailable.  A 404 during mint
+    invalidates the resolved-id cache and triggers a single re-resolve
+    before failing with :class:`RepoNotInstalledError`.
+    """
+    if install_id is None and not (owner and repo):
+        raise TokenMintError("Either installation_id or both owner and repo must be provided.")
+
+    jwt_token = _build_app_jwt(app_id, private_key)
+
+    # Static-only path: no owner/repo to resolve against.
+    if not (owner and repo):
+        if install_id is None:  # pragma: no cover - guarded by the check above
+            raise TokenMintError("owner and repo must be provided when installation_id is omitted")
+        return _mint_with_cache(jwt_token, install_id, scopes)
+
+    # owner/repo path: auto-resolve the current installation id.
+    repo_full_name = f"{owner}/{repo}"
+    resolved_from_repo = True
+    try:
+        resolved_id = _resolve_installation_id_for_repo(jwt_token, repo_full_name)
+    except RepoNotInstalledError, RateLimitError:
+        raise
+    except TokenMintError:
+        # The App-JWT installations lookup is unavailable (network error,
+        # 5xx, ...).  Fall back to the statically-configured installation
+        # id as a last resort, if one was provided.
+        if install_id is None:
+            raise
+        logger.warning(
+            "installation-id resolution for %s failed; falling back to configured installation id",
+            repo_full_name,
+        )
+        resolved_id = install_id
+        resolved_from_repo = False
+
+    try:
+        return _mint_with_cache(jwt_token, resolved_id, scopes)
+    except _MintNotFoundError as exc:
+        if not resolved_from_repo:
+            # The configured fallback id is stale and there is nothing
+            # fresher to try.
+            raise RepoNotInstalledError(owner, repo) from exc
+        # The resolved id went stale between resolution and mint (e.g. an
+        # account-wide reinstall).  Invalidate and re-resolve exactly once.
+        logger.info("mint returned 404 for %s; re-resolving installation id", repo_full_name)
+        _installation_id_cache.invalidate(owner, repo)
+        resolved_id = _resolve_installation_id_for_repo(jwt_token, repo_full_name)
+        try:
+            return _mint_with_cache(jwt_token, resolved_id, scopes)
+        except _MintNotFoundError as exc2:
+            raise RepoNotInstalledError(owner, repo) from exc2
 
 
 def mint_installation_token(
