@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import logging
 
-from robotsix_github_auth._auth import github_push_token, github_token, mint_installation_token
+from robotsix_github_auth._auth import (
+    github_push_token,
+    github_token,
+    mint_installation_token,
+    resolve_installation_id_for_repo,
+)
 from robotsix_github_auth._cache import _token_cache
 from robotsix_github_auth._exceptions import (
     GithubAuthError,
@@ -41,5 +46,6 @@ __all__ = [
     "github_token",
     "invalidate_token_cache",
     "mint_installation_token",
+    "resolve_installation_id_for_repo",
     "validate_scopes",
 ]
