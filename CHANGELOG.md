@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.1](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.0...v0.4.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* Wire per-repo installation-id resolver into the token-mint path (20260907T235543Z-wire-per-repo-installation-id-resolver-i-bf4a) ([#90](https://github.com/damien-robotsix/robotsix-github-auth/issues/90)) ([73da9ee](https://github.com/damien-robotsix/robotsix-github-auth/commit/73da9eea79b4e55b790e5e422d4f4bdcaebd22b5))
+
 ## [0.4.0](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.3.1...v0.4.0) (2026-08-30)
 
 
