@@ -18,6 +18,7 @@ from robotsix_github_auth import (
     RepoNotInstalledError,
     TokenMintError,
     mint_installation_token,
+    resolve_installation_id_for_repo,
 )
 from robotsix_github_auth._auth import (
     _build_app_jwt,
@@ -217,6 +218,68 @@ class TestResolveInstallationIdForRepo:
         jwt_token = _build_app_jwt(app_id, private_key)
         with pytest.raises(TokenMintError, match="expected 'owner/repo'"):
             _resolve_installation_id_for_repo(jwt_token, "no-slash")
+
+
+class TestPublicResolveInstallationIdForRepo:
+    """The public, exported per-repo installation resolver with built-in caching."""
+
+    def test_resolves_installation_id(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            json={"id": 42},
+            status_code=200,
+        )
+        iid = resolve_installation_id_for_repo(
+            owner="octocat",
+            repo="hello-world",
+            app_id=app_id,
+            private_key=private_key,
+        )
+        assert iid == "42"
+
+    def test_result_is_cached_within_ttl(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """Two resolutions within the TTL trigger only one installations-API lookup."""
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            json={"id": 42},
+            status_code=200,
+        )
+        first = resolve_installation_id_for_repo(
+            owner="octocat",
+            repo="hello-world",
+            app_id=app_id,
+            private_key=private_key,
+        )
+        second = resolve_installation_id_for_repo(
+            owner="octocat",
+            repo="hello-world",
+            app_id=app_id,
+            private_key=private_key,
+        )
+        assert first == second == "42"
+        resolution_requests = [
+            r for r in httpx_mock.get_requests() if str(r.url).endswith("/installation")
+        ]
+        assert len(resolution_requests) == 1
+
+    def test_raises_when_repo_not_installed(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            status_code=404,
+        )
+        with pytest.raises(RepoNotInstalledError, match="not installed"):
+            resolve_installation_id_for_repo(
+                owner="octocat",
+                repo="hello-world",
+                app_id=app_id,
+                private_key=private_key,
+            )
 
 
 class TestMintInstallationToken:

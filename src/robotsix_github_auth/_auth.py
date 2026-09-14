@@ -183,6 +183,27 @@ def _resolve_installation_id_for_repo(jwt_token: str, repo_full_name: str) -> st
     return installation_id
 
 
+def resolve_installation_id_for_repo(
+    *,
+    owner: str,
+    repo: str,
+    app_id: str,
+    private_key: str,
+) -> str:
+    """Resolve and cache the GitHub App installation id covering ``owner/repo``.
+
+    Public per-repo installation resolution with built-in short-TTL
+    caching.  Builds a short-lived App JWT and resolves the current
+    installation id covering the repository via the GitHub installations
+    API, caching it in-process so repeated calls for the same repo do not
+    re-hit the API.  Resolving per repo — rather than trusting a statically
+    configured installation id — is what prevents a stale id from breaking
+    token minting after an account-wide App reinstall.
+    """
+    jwt_token = _build_app_jwt(app_id, private_key)
+    return _resolve_installation_id_for_repo(jwt_token, f"{owner}/{repo}")
+
+
 def _mint_token(
     jwt_token: str,
     installation_id: str,

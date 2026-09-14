@@ -123,6 +123,25 @@ Returns `InstallationToken`.  Raises `TokenMintError` on failure, or `RateLimitE
 (respectively a subclass of `TokenMintError`) when GitHub returns a **429** rate-limit
 response.
 
+### `resolve_installation_id_for_repo`
+
+```python
+def resolve_installation_id_for_repo(
+    *,
+    owner: str,
+    repo: str,
+    app_id: str,
+    private_key: str,
+) -> str
+```
+
+Resolve and cache the GitHub App installation id covering `owner/repo`.  Builds a
+short-lived App JWT and resolves the current installation id via the installations
+API, caching it in-process (short TTL) so repeated calls for the same repo do not
+re-hit the API.  Returns the installation id as a string.  Raises `TokenMintError`
+on failure, `RepoNotInstalledError` when the App is not installed on the repository,
+or `RateLimitError` on a **429** response.
+
 ### `InstallationToken`
 
 ```python
