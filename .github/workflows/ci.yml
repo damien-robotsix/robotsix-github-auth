@@ -96,12 +96,6 @@ jobs:
           python-version: "3.14"
           uv-version: "0.8.15"
           install-extras: "dev"
-      - name: Enforce coverage floor (hard minimum 80)
-        run: |
-          if [ "80" -lt 80 ]; then
-            echo "::error::coverage-threshold=80 is below the fleet-wide hard minimum of 80."
-            exit 1
-          fi
       - name: Run tests
         env:
           UV_PROJECT_ENVIRONMENT: system
