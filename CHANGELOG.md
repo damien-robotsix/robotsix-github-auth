@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.2](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.1...v0.4.2) (2026-09-18)
+
+
+### Documentation
+
+* Document exported github_token/github_push_token and env-var auth config in README (20260918T025328Z-document-exported-github-token-github-pu-503b) ([#96](https://github.com/damien-robotsix/robotsix-github-auth/issues/96)) ([88e61cf](https://github.com/damien-robotsix/robotsix-github-auth/commit/88e61cfa3f1070377eeea72220f47968f685cffa))
+
 ## [0.4.1](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.0...v0.4.1) (2026-09-08)
 
 
