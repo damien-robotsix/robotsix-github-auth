@@ -183,6 +183,104 @@ def clear_token_cache() -> None
 
 Remove every cached token.
 
+### `github_token`
+
+```python
+def github_token(
+    *,
+    pat: str | None = None,
+    app_id: str | None = None,
+    private_key: str | None = None,
+    installation_id: str | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+    scopes: Mapping[str, str] | None = None,
+    auth_mode: str | None = None,
+) -> str
+```
+
+Resolve a GitHub bearer token using PAT or GitHub App authentication.
+
+In **token** mode (`auth_mode="token"`, or `GITHUB_AUTH_MODE=token`) the token
+is read from `pat` (falling back to the `FORGE_TOKEN` environment variable).  In
+**app** mode (the default) the token is minted via the GitHub App and its raw
+token string is returned.
+
+| Parameter | Description |
+|---|---|
+| `pat` | Personal access token (PAT mode). Falls back to `FORGE_TOKEN`. |
+| `app_id` | GitHub App ID (App mode). Falls back to `GITHUB_APP_ID`. |
+| `private_key` | App private key PEM (App mode). Falls back to `GITHUB_APP_PRIVATE_KEY`. |
+| `installation_id` | App installation ID (App mode). Falls back to `GITHUB_APP_INSTALLATION_ID`. |
+| `owner` | Repository owner for installation resolution (App mode). |
+| `repo` | Repository name for installation resolution (App mode). |
+| `scopes` | Permission narrowing for the installation token (App mode). |
+| `auth_mode` | `"token"` or `"app"`. Defaults to `GITHUB_AUTH_MODE` env var, else `"app"`. |
+
+Returns the token as a string.  Raises `TokenMintError` when no token can be
+resolved, or `RateLimitError` (a subclass of `TokenMintError`) on a **429**
+response.
+
+### `github_push_token`
+
+```python
+def github_push_token(
+    *,
+    pat: str | None = None,
+    push_token: str | None = None,
+    app_id: str | None = None,
+    private_key: str | None = None,
+    installation_id: str | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+    scopes: Mapping[str, str] | None = None,
+    auth_mode: str | None = None,
+) -> str
+```
+
+Resolve a GitHub bearer token suitable for push operations.
+
+In **token** mode returns `push_token` (falling back to `FORGE_PUSH_TOKEN`),
+then to the primary PAT (from `pat` or `FORGE_TOKEN`).  In **app** mode it
+delegates to `github_token`.
+
+| Parameter | Description |
+|---|---|
+| `pat` | Primary personal access token, used as fallback when `push_token` is unset (PAT mode). |
+| `push_token` | Push-specific PAT (PAT mode). Falls back to `FORGE_PUSH_TOKEN`. |
+| `app_id` | GitHub App ID (App mode). Falls back to `GITHUB_APP_ID`. |
+| `private_key` | App private key PEM (App mode). Falls back to `GITHUB_APP_PRIVATE_KEY`. |
+| `installation_id` | App installation ID (App mode). Falls back to `GITHUB_APP_INSTALLATION_ID`. |
+| `owner` | Repository owner for installation resolution (App mode). |
+| `repo` | Repository name for installation resolution (App mode). |
+| `scopes` | Permission narrowing for the installation token (App mode). |
+| `auth_mode` | `"token"` or `"app"`. Defaults to `GITHUB_AUTH_MODE` env var, else `"app"`. |
+
+Returns the token as a string.  Raises `TokenMintError` when no token can be
+resolved, or `RateLimitError` (a subclass of `TokenMintError`) on a **429**
+response.
+
+### Environment variables
+
+`github_token` and `github_push_token` are configured primarily through
+environment variables, with explicit function arguments taking precedence.  Both
+select between **PAT** and **GitHub App** modes via `GITHUB_AUTH_MODE`.
+
+| Variable | Meaning | Used by |
+|---|---|---|
+| `GITHUB_AUTH_MODE` | Auth mode: `"token"` (PAT) or `"app"` (default). | `github_token`, `github_push_token` |
+| `FORGE_TOKEN` | Primary personal access token (PAT mode). | `github_token`, `github_push_token` |
+| `FORGE_PUSH_TOKEN` | Push-specific PAT (PAT mode); falls back to `FORGE_TOKEN`. | `github_push_token` |
+| `GITHUB_APP_ID` | GitHub App ID (App mode). | `github_token`, `github_push_token` |
+| `GITHUB_APP_PRIVATE_KEY` | App private key PEM (App mode). | `github_token`, `github_push_token` |
+| `GITHUB_APP_INSTALLATION_ID` | App installation ID (App mode); overrides per-repo resolution. | `github_token`, `github_push_token` |
+
+**PAT → App fallback priority.** When `GITHUB_AUTH_MODE` is unset (the default)
+or set to `"app"`, the GitHub App path is used.  Set `GITHUB_AUTH_MODE=token` to
+use a PAT instead.  In token mode, `github_token` reads the primary PAT from
+`FORGE_TOKEN` (or its `pat` argument); `github_push_token` prefers
+`FORGE_PUSH_TOKEN` and falls back to `FORGE_TOKEN`.
+
 ### Exceptions
 
 | Exception | Base | Description |
