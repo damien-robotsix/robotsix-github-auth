@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.3](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.2...v0.4.3) (2026-10-02)
+
+
+### Bug Fixes
+
+* Fix incomplete exception recovery for RateLimitError during installation ID resolution (20261002T042554Z-fix-incomplete-exception-recovery-for-ra-ff8e) ([#100](https://github.com/damien-robotsix/robotsix-github-auth/issues/100)) ([7c8e55f](https://github.com/damien-robotsix/robotsix-github-auth/commit/7c8e55f50dcf15fe2c47382df586dccb51eda461))
+
 ## [0.4.2](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.1...v0.4.2) (2026-09-18)
 
 
