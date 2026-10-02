@@ -485,11 +485,11 @@ def _resolve_token(
     resolved_from_repo = True
     try:
         resolved_id = _resolve_installation_id_for_repo(jwt_token, repo_full_name)
-    except RepoNotInstalledError, RateLimitError:
+    except RepoNotInstalledError:
         raise
     except TokenMintError:
         # The App-JWT installations lookup is unavailable (network error,
-        # 5xx, ...).  Fall back to the statically-configured installation
+        # 5xx, rate limit, ...).  Fall back to the statically-configured installation
         # id as a last resort, if one was provided.
         if install_id is None:
             raise

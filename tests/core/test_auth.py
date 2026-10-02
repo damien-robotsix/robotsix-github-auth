@@ -684,6 +684,59 @@ class TestMintInstallationToken:
         stale_mint = [r for r in httpx_mock.get_requests() if "installations/99/" in str(r.url)]
         assert not stale_mint
 
+    def test_resolution_rate_limit_falls_back_to_configured_id(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A 429 during installation-id resolution falls back to the configured id.
+
+        The resolution endpoint is rate-limited, but a static
+        ``installation_id`` was provided, so minting proceeds against it
+        instead of re-raising the RateLimitError.
+        """
+        expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+        # Resolution is rate-limited.
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            status_code=429,
+            headers={"Retry-After": "30"},
+        )
+        # Mint against the configured fallback id succeeds.
+        httpx_mock.add_response(
+            url="https://api.github.com/app/installations/99/access_tokens",
+            json={
+                "token": "ghs_fallback",
+                "expires_at": expires_at,
+                "permissions": {"contents": "read"},
+            },
+            status_code=201,
+        )
+        token = mint_installation_token(
+            app_id,
+            private_key,
+            installation_id="99",
+            owner="octocat",
+            repo="hello-world",
+        )
+        assert token.token == "ghs_fallback"
+
+    def test_resolution_rate_limit_without_configured_id_reraises(
+        self, app_id: str, private_key: str, httpx_mock: HTTPXMock
+    ) -> None:
+        """A 429 during resolution with no configured id re-raises RateLimitError."""
+        httpx_mock.add_response(
+            url="https://api.github.com/repos/octocat/hello-world/installation",
+            status_code=429,
+            headers={"Retry-After": "30"},
+        )
+        with pytest.raises(RateLimitError) as excinfo:
+            mint_installation_token(
+                app_id,
+                private_key,
+                owner="octocat",
+                repo="hello-world",
+            )
+        assert excinfo.value.retry_after_seconds == 30
+
     def test_mint_404_invalidates_cache_and_reresolves_once(
         self, app_id: str, private_key: str, httpx_mock: HTTPXMock
     ) -> None:
