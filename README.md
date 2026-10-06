@@ -407,6 +407,10 @@ uv run mypy src/
 uv run deptry .
 ```
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for a full contributor guide:
+environment setup, running tests and coverage, code style and type
+checking, commit conventions, and pull-request guidelines.
+
 ## CI workflow conventions
 
 - **`persist-credentials: false`** — Every `actions/checkout` step in a
