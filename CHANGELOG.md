@@ -9,6 +9,14 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.4](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.3...v0.4.4) (2026-10-06)
+
+
+### Documentation
+
+* Create CONTRIBUTING.md with contribution guidelines and development setup (20261006T163417Z-create-contributing-md-with-contribution-f9ae) ([#102](https://github.com/damien-robotsix/robotsix-github-auth/issues/102)) ([f7297fc](https://github.com/damien-robotsix/robotsix-github-auth/commit/f7297fc76727246021ed1b90054cfafd88bc6d33))
+* Create GitHub PR and issue templates (20261006T204335Z-create-github-pr-and-issue-templates-8a4d) ([#104](https://github.com/damien-robotsix/robotsix-github-auth/issues/104)) ([614aa62](https://github.com/damien-robotsix/robotsix-github-auth/commit/614aa629900e4ca86b2eb74c52ef8c4cb1fbfca6))
+
 ## [0.4.3](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.2...v0.4.3) (2026-10-02)
 
 
