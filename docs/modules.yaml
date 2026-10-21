@@ -14,10 +14,12 @@ modules:
       - .pre-commit-config.yaml
 
   - id: ci
-    description: CI workflow definitions
+    description: CI workflow definitions and GitHub issue/PR templates
     paths:
       - .github/workflows/**
       - .github/workflows/release-please.yml
+      - .github/ISSUE_TEMPLATE/**
+      - .github/PULL_REQUEST_TEMPLATE.md
       - docs/ci/**
 
   - id: mill
