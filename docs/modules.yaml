@@ -14,7 +14,7 @@ modules:
       - .pre-commit-config.yaml
 
   - id: ci
-    description: CI workflow definitions and GitHub issue/PR templates
+    description: CI workflow definitions and GitHub community-health templates
     paths:
       - .github/workflows/**
       - .github/workflows/release-please.yml
