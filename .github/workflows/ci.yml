@@ -122,10 +122,10 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5.4.2
       - run: uv lock --check
 
   modules:
@@ -134,10 +134,10 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5.4.2
         with:
           python-version: "3.14"
       - run: uv sync --frozen --extra dev
@@ -151,15 +151,15 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           persist-credentials: false
-      - uses: github/codeql-action/init@4187e74d05793876e9989daffde9c3e66b4acd07  # v3
+      - uses: github/codeql-action/init@4187e74d05793876e9989daffde9c3e66b4acd07  # v3.37.3
         with:
           languages: python
           build-mode: none
           queries: security-and-quality
-      - uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07  # v3
+      - uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07  # v3.37.3
 
   zizmor:
     runs-on: ubuntu-latest
@@ -167,10 +167,10 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5.4.2
       - run: uvx zizmor@1.27.0 --min-severity medium .github/workflows/
 
   ci-conventions:
@@ -179,10 +179,10 @@ jobs:
       - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5.4.2
         with:
           enable-cache: true
           python-version: "3.14"
