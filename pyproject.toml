@@ -62,7 +62,7 @@ known-first-party = ["robotsix_github_auth"]
 testpaths = ["tests"]
 
 [tool.uv.sources]
-robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "791dcf356f35103dd8a22dec1ebeefbaeb2a5c00" }
+robotsix-http = { git = "https://github.com/damien-robotsix/robotsix-http.git", rev = "70016cdc27d3b724a111239ee54eb9be955c4d24" }
 robotsix-modules = { git = "https://github.com/damien-robotsix/robotsix-modules.git", rev = "7bb8157088dc8599c44b11803dbb83403bca8f98" }
 
 [tool.deptry]
