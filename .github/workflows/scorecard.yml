@@ -6,20 +6,14 @@ on:
   schedule:
     - cron: '30 1 * * 0'
 
-permissions:
-  contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions: read-all
 
 jobs:
   openssf-scorecard:
-    name: openssf-scorecard
     runs-on: ubuntu-latest
     permissions:
-      id-token: write  # OIDC token to publish results to the OpenSSF API
-      security-events: write  # upload Scorecard SARIF results to code scanning
+      id-token: write
+      security-events: write
     steps:
       - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2  # v2.22.2
         with:
