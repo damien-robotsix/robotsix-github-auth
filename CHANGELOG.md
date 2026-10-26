@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.5](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.4...v0.4.5) (2026-10-26)
+
+
+### Documentation
+
+* Cite the authorizing ticket ID in the .github/zizmor.yml header comment (20261026T135003Z-cite-the-authorizing-ticket-id-in-the-gi-20ae) ([#125](https://github.com/damien-robotsix/robotsix-github-auth/issues/125)) ([dba1c9e](https://github.com/damien-robotsix/robotsix-github-auth/commit/dba1c9e5f7cb0f9e4027fb8fda8d26698e9fcb66))
+
 ## [0.4.4](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.3...v0.4.4) (2026-10-06)
 
 
