@@ -315,12 +315,11 @@ import time
 
 from robotsix_github_auth import RateLimitError, mint_installation_token
 
+
 def mint_with_backoff(app_id, private_key, *, installation_id, attempts=5):
     for attempt in range(attempts):
         try:
-            return mint_installation_token(
-                app_id, private_key, installation_id=installation_id
-            )
+            return mint_installation_token(app_id, private_key, installation_id=installation_id)
         except RateLimitError as exc:
             if attempt == attempts - 1:
                 raise
