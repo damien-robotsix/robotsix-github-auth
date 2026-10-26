@@ -9,9 +9,10 @@ on:
 permissions:
   contents: read
 
+# One scheduled scan at a time; never cancel a running scan (operator decision 2026-10-26).
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   openssf-scorecard:
