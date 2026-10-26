@@ -1,0 +1,14 @@
+# Operator decision 2026-10-26: scorecard.yml stays byte-identical to upstream (5434b9e); suppress pedantic findings for it here instead of editing it.
+rules:
+  anonymous-definition:
+    ignore:
+      - scorecard.yml
+  undocumented-permissions:
+    ignore:
+      - scorecard.yml
+  excessive-permissions:
+    ignore:
+      - scorecard.yml
+  concurrency-limits:
+    ignore:
+      - scorecard.yml
