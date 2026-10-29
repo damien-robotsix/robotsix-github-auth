@@ -31,6 +31,10 @@ modules:
     description: Project documentation
     paths:
       - docs/modules.yaml
+      - docs/api.md
+      - docs/architecture.md
+      - docs/configuration.md
+      - docs/migration.md
 
   - id: scripts
     description: Utility scripts for CI and development workflows
