@@ -7,10 +7,10 @@ import logging
 import os
 import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from typing import Any
+from typing import Any, NoReturn
 
 import httpx
 import jwt
@@ -119,6 +119,37 @@ class _MintNotFoundError(TokenMintError):
     """
 
 
+def _raise_for_github_error(
+    exc: Exception,
+    *,
+    context: str,
+    not_found: Callable[[], Exception],
+) -> NoReturn:
+    """Map an exception from a GitHub API call to this package's exceptions.
+
+    * HTTP 429 -> :class:`RateLimitError` (honouring ``Retry-After``).
+    * HTTP 404 -> the exception built by ``not_found``.
+    * Any other HTTP status -> :class:`TokenMintError` with the status code.
+    * Anything else (transport errors, JSON decoding, ...) ->
+      :class:`TokenMintError` with the original message.
+
+    ``context`` prefixes the error message (e.g. ``"Failed to mint token for
+    installation 42"``).  Always raises, chaining from ``exc``.
+    """
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        if status == 429:
+            retry_after = _parse_retry_after(exc.response.headers.get("Retry-After"))
+            raise RateLimitError(
+                f"Rate limited by GitHub API: {status}",
+                retry_after_seconds=retry_after,
+            ) from exc
+        if status == 404:
+            raise not_found() from exc
+        raise TokenMintError(f"{context}: HTTP {status}") from exc
+    raise TokenMintError(f"{context}: {exc}") from exc
+
+
 def _resolve_installation_id(
     jwt_token: str,
     owner: str,
@@ -137,22 +168,12 @@ def _resolve_installation_id(
         )
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 429:
-            retry_after = _parse_retry_after(exc.response.headers.get("Retry-After"))
-            raise RateLimitError(
-                f"Rate limited by GitHub API: {exc.response.status_code}",
-                retry_after_seconds=retry_after,
-            ) from exc
-        if exc.response.status_code == 404:
-            raise RepoNotInstalledError(owner, repo) from exc
-        raise TokenMintError(
-            f"Failed to resolve installation for {owner}/{repo}: HTTP {exc.response.status_code}"
-        ) from exc
-    except httpx.RequestError as exc:
-        raise TokenMintError(f"Failed to resolve installation for {owner}/{repo}: {exc}") from exc
     except Exception as exc:
-        raise TokenMintError(f"Failed to resolve installation for {owner}/{repo}: {exc}") from exc
+        _raise_for_github_error(
+            exc,
+            context=f"Failed to resolve installation for {owner}/{repo}",
+            not_found=lambda: RepoNotInstalledError(owner, repo),
+        )
 
     installation_id: str | None = str(data.get("id", "")) or None
     if not installation_id:
@@ -231,32 +252,16 @@ def _mint_token(
         )
         resp.raise_for_status()
         data: dict[str, Any] = resp.json()
-    except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 429:
-            retry_after = _parse_retry_after(exc.response.headers.get("Retry-After"))
-            raise RateLimitError(
-                f"Rate limited by GitHub API: {exc.response.status_code}",
-                retry_after_seconds=retry_after,
-            ) from exc
-        if exc.response.status_code == 404:
-            # The installation id is no longer valid (e.g. it was recreated
-            # after an account-wide App reinstall).  Signalled distinctly so
-            # the caller can invalidate the resolved-id cache and re-resolve.
-            raise _MintNotFoundError(
-                f"Failed to mint token for installation {installation_id}: HTTP 404"
-            ) from exc
-        raise TokenMintError(
-            f"Failed to mint token for installation {installation_id}: "
-            f"HTTP {exc.response.status_code}"
-        ) from exc
-    except httpx.RequestError as exc:
-        raise TokenMintError(
-            f"Failed to mint token for installation {installation_id}: {exc}"
-        ) from exc
     except Exception as exc:
-        raise TokenMintError(
-            f"Failed to mint token for installation {installation_id}: {exc}"
-        ) from exc
+        context = f"Failed to mint token for installation {installation_id}"
+        # A 404 means the installation id is no longer valid (e.g. it was
+        # recreated after an account-wide App reinstall).  Signalled distinctly
+        # so the caller can invalidate the resolved-id cache and re-resolve.
+        _raise_for_github_error(
+            exc,
+            context=context,
+            not_found=lambda: _MintNotFoundError(f"{context}: HTTP 404"),
+        )
 
     try:
         expires_at_str: str = data["expires_at"]
