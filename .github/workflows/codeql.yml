@@ -22,7 +22,7 @@ jobs:
       actions: read  # CodeQL reads workflow run metadata for the analysis
       contents: read  # check out the repository
       security-events: write  # upload CodeQL SARIF results to code scanning
-    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/codeql.yml@47523e8aa2d34d41da060d29b57f75ab262cb840  # v1.4.0
+    uses: damien-robotsix/robotsix-github-workflows/.github/workflows/codeql.yml@86a722f2938c1dda343bbf8d3c5989613cbf1794  # v1.5.0
     with:
       languages: python
       build-mode: none
