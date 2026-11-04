@@ -9,6 +9,13 @@
 - 20260805T163049Z-extend-mypy-ci-coverage-to-tests-the-too-1b5b
 
 
+## [0.4.6](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.5...v0.4.6) (2026-11-04)
+
+
+### Documentation
+
+* Expand SECURITY.md with scope of accepted reports and report contents (20261104T185454Z-expand-security-md-with-scope-of-accepte-353a) ([#153](https://github.com/damien-robotsix/robotsix-github-auth/issues/153)) ([efb6348](https://github.com/damien-robotsix/robotsix-github-auth/commit/efb6348cfaf3376ac658214a1924732026d463be))
+
 ## [0.4.5](https://github.com/damien-robotsix/robotsix-github-auth/compare/v0.4.4...v0.4.5) (2026-10-26)
 
 
