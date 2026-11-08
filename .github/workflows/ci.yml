@@ -43,6 +43,7 @@ jobs:
   modules:
     name: modules
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2  # v2.22.2
         with:
@@ -59,6 +60,7 @@ jobs:
   ci-conventions:
     name: ci-conventions
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2  # v2.22.2
         with:
