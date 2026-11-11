@@ -383,13 +383,10 @@ class TestMintInstallationToken:
             status_code=429,
             headers={"Retry-After": "17"},
         )
-        try:
+        with pytest.raises(TokenMintError) as excinfo:
             mint_installation_token(app_id, private_key, installation_id="42")
-        except TokenMintError as exc:  # pragma: no branch - always raised here
-            assert isinstance(exc, RateLimitError)
-            assert exc.retry_after_seconds == 17
-        else:  # pragma: no cover - defensive
-            pytest.fail("expected a TokenMintError to be raised")
+        assert isinstance(excinfo.value, RateLimitError)
+        assert excinfo.value.retry_after_seconds == 17
 
     @pytest.mark.parametrize("status_code", [401, 403])
     def test_mint_other_error_statuses_stay_token_mint_error(

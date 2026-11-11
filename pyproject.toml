@@ -50,7 +50,14 @@ select = [
     "C4",  # flake8-comprehensions
     "SIM", # flake8-simplify
     "S",   # flake8-bandit (security)
+    "LOG", # flake8-logging
+    "G",   # flake8-logging-format
+    "ERA", # eradicate (commented-out code)
+    "PGH", # pygrep-hooks
+    "RUF", # ruff-specific rules
+    "PT",  # flake8-pytest-style
 ]
+ignore = ["PT006"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["robotsix_github_auth"]
