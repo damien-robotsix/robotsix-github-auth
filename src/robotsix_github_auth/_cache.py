@@ -2,7 +2,7 @@
 
 Thread-safe.  Keyed by ``(installation_id, frozen_scope_tuple)`` so that
 different permission sets get separate entries.  Tokens are evicted when
-their remaining lifetime drops below ``REFRESH_MARGIN_SECONDS`` (5 min).
+their remaining lifetime drops below ``REFRESH_MARGIN_SECONDS`` (5 min).
 """
 
 from __future__ import annotations
