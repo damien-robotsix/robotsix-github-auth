@@ -1,9 +1,19 @@
 # Dependabot version updates. PRs are verified by ci.yml and then
 # approved/merged by dependabot-auto-merge.yml.
 #
-# Note: Dependabot cannot bump the reusable-workflow pins on
-# damien-robotsix/robotsix-github-workflows (`@<sha>  # main`); those
-# must be bumped manually.
+# Shared reusable workflows: every `uses:
+# damien-robotsix/robotsix-github-workflows/...` caller in
+# .github/workflows/ is pinned to a release commit SHA with its tag as a
+# trailing comment (`@<40-char sha>  # vX.Y.Z`). The github-actions
+# ecosystem below may propose bumps for these pins, and the `actions-all`
+# group keeps such a bump in a single PR. So far every bump has been made
+# by hand. All shared callers MUST stay on the same release, so bump them
+# together in one PR:
+#   1. git ls-remote https://github.com/damien-robotsix/robotsix-github-workflows \
+#        "refs/tags/<tag>^{}" "refs/tags/<tag>"   (prefer the peeled ^{} SHA)
+#   2. Replace the SHA and `# <tag>` comment on every caller
+#      (git grep -n robotsix-github-workflows/ .github/workflows/).
+#   3. Check that the inputs each caller passes still exist in that release.
 version: 2
 updates:
   - package-ecosystem: github-actions
