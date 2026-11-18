@@ -183,6 +183,7 @@ def check_workflow(path: str, *, workflow_dir: Path | None = None) -> list[str]:
 
 
 def main() -> None:
+    """Check a CI workflow file for convention violations and exit non-zero on failure."""
     workflow_path = sys.argv[1] if len(sys.argv) > 1 else ".github/workflows/ci.yml"
     errors = check_workflow(workflow_path)
 
