@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.14"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -695,24 +695,25 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6" },
     { name = "pytest-httpx", marker = "extra == 'dev'", specifier = ">=0.35" },
     { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6" },
-    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=791dcf356f35103dd8a22dec1ebeefbaeb2a5c00" },
-    { name = "robotsix-modules", marker = "extra == 'dev'", git = "https://github.com/damien-robotsix/robotsix-modules.git?rev=7bb8157088dc8599c44b11803dbb83403bca8f98" },
+    { name = "robotsix-http", git = "https://github.com/damien-robotsix/robotsix-http.git?rev=d73d042518b0ed77271e3c5ff8d48bca9d98273e" },
+    { name = "robotsix-modules", marker = "extra == 'dev'", git = "https://github.com/damien-robotsix/robotsix-modules.git?rev=28c4c04b9f6dbf31108ee2c4af9f94a72bae43c3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.9" },
 ]
 provides-extras = ["dev"]
 
 [[package]]
 name = "robotsix-http"
-version = "0.4.0"
-source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=791dcf356f35103dd8a22dec1ebeefbaeb2a5c00#791dcf356f35103dd8a22dec1ebeefbaeb2a5c00" }
+version = "0.9.5"
+source = { git = "https://github.com/damien-robotsix/robotsix-http.git?rev=d73d042518b0ed77271e3c5ff8d48bca9d98273e#d73d042518b0ed77271e3c5ff8d48bca9d98273e" }
 dependencies = [
+    { name = "httpcore" },
     { name = "httpx" },
 ]
 
 [[package]]
 name = "robotsix-modules"
-version = "0.5.1"
-source = { git = "https://github.com/damien-robotsix/robotsix-modules.git?rev=7bb8157088dc8599c44b11803dbb83403bca8f98#7bb8157088dc8599c44b11803dbb83403bca8f98" }
+version = "0.6.0"
+source = { git = "https://github.com/damien-robotsix/robotsix-modules.git?rev=28c4c04b9f6dbf31108ee2c4af9f94a72bae43c3#28c4c04b9f6dbf31108ee2c4af9f94a72bae43c3" }
 dependencies = [
     { name = "jsonschema" },
     { name = "pyyaml" },
