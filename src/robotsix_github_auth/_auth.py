@@ -150,6 +150,35 @@ def _raise_for_github_error(
     raise TokenMintError(f"{context}: {exc}") from exc
 
 
+def _github_request(
+    method: str,
+    url: str,
+    *,
+    headers: Mapping[str, str],
+    json: dict[str, Any] | None = None,
+    context: str,
+    not_found: Callable[[], Exception],
+) -> dict[str, Any]:
+    """Run one GitHub API request through the shared retry/error pipeline.
+
+    Wraps the ``call_with_retry`` (``_RETRY_CONFIG``) +
+    ``raise_for_status`` + ``resp.json()`` sequence used by every
+    authenticated GitHub API call so all call sites share identical
+    retry and error-translation semantics.  ``context`` prefixes error
+    messages; ``not_found`` builds the exception raised for an HTTP 404.
+    """
+    try:
+        resp = call_with_retry(
+            lambda: _GITHUB_CLIENT.request(method, url, headers=headers, json=json),
+            config=_RETRY_CONFIG,
+        )
+        resp.raise_for_status()
+        data: dict[str, Any] = resp.json()
+    except Exception as exc:
+        _raise_for_github_error(exc, context=context, not_found=not_found)
+    return data
+
+
 def _resolve_installation_id(
     jwt_token: str,
     owner: str,
@@ -161,19 +190,13 @@ def _resolve_installation_id(
         "Authorization": f"Bearer {jwt_token}",
         "Accept": "application/vnd.github+json",
     }
-    try:
-        resp = call_with_retry(
-            lambda: _GITHUB_CLIENT.get(url, headers=headers),
-            config=_RETRY_CONFIG,
-        )
-        resp.raise_for_status()
-        data: dict[str, Any] = resp.json()
-    except Exception as exc:
-        _raise_for_github_error(
-            exc,
-            context=f"Failed to resolve installation for {owner}/{repo}",
-            not_found=lambda: RepoNotInstalledError(owner, repo),
-        )
+    data = _github_request(
+        "GET",
+        url,
+        headers=headers,
+        context=f"Failed to resolve installation for {owner}/{repo}",
+        not_found=lambda: RepoNotInstalledError(owner, repo),
+    )
 
     installation_id: str | None = str(data.get("id", "")) or None
     if not installation_id:
@@ -245,23 +268,18 @@ def _mint_token(
         installation_id,
         sorted((scopes or {}).keys()),
     )
-    try:
-        resp = call_with_retry(
-            lambda: _GITHUB_CLIENT.post(url, headers=headers, json=body),
-            config=_RETRY_CONFIG,
-        )
-        resp.raise_for_status()
-        data: dict[str, Any] = resp.json()
-    except Exception as exc:
-        context = f"Failed to mint token for installation {installation_id}"
-        # A 404 means the installation id is no longer valid (e.g. it was
-        # recreated after an account-wide App reinstall).  Signalled distinctly
-        # so the caller can invalidate the resolved-id cache and re-resolve.
-        _raise_for_github_error(
-            exc,
-            context=context,
-            not_found=lambda: _MintNotFoundError(f"{context}: HTTP 404"),
-        )
+    context = f"Failed to mint token for installation {installation_id}"
+    # A 404 means the installation id is no longer valid (e.g. it was
+    # recreated after an account-wide App reinstall).  Signalled distinctly
+    # so the caller can invalidate the resolved-id cache and re-resolve.
+    data = _github_request(
+        "POST",
+        url,
+        headers=headers,
+        json=body,
+        context=context,
+        not_found=lambda: _MintNotFoundError(f"{context}: HTTP 404"),
+    )
 
     try:
         expires_at_str: str = data["expires_at"]
