@@ -11,7 +11,7 @@ classifiers = [
 dependencies = [
     "httpx>=0.28",
     "pyjwt[crypto]>=2.15.0",
-    "robotsix-http",
+    "robotsix-http @ git+https://github.com/damien-robotsix/robotsix-http.git@791dcf356f35103dd8a22dec1ebeefbaeb2a5c00",
 ]
 
 [project.optional-dependencies]
@@ -20,7 +20,7 @@ dev = [
     "pytest>=9",
     "pytest-httpx>=0.35",
     "pyyaml>=6",
-    "robotsix-modules",
+    "robotsix-modules @ git+https://github.com/damien-robotsix/robotsix-modules.git@7bb8157088dc8599c44b11803dbb83403bca8f98",
     "ruff>=0.9",
     "mypy>=1.14",
     "deptry>=0.23",
@@ -30,6 +30,11 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# Direct (PEP 508 git) references in [project] metadata require hatchling
+# to permit them (unversioned robotsix-http audit fix).
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/robotsix_github_auth"]
